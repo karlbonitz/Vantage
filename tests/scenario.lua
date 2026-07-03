@@ -337,6 +337,16 @@ H.Advance(0.4)
 ok(not uf2.__vigilHover:IsShown(), "hover wash retired when mouse leaves")
 
 -- 12. Plate despawn releases cleanly; slash commands and export run
+-- 12a. First: a duplicate ADDED (missed REMOVED) must release the stale
+-- overlay instead of leaking it as a ghost bar
+local oGhost = Vigil.plates.nameplate1
+oGhost:ShowCast("Ghost Cast", nil, 3)
+ok(oGhost.castbar:IsShown(), "setup: stale cast showing before duplicate ADDED")
+H.FireEvent("NAME_PLATE_UNIT_ADDED", "nameplate1")
+local oFresh = Vigil.plates.nameplate1
+ok(oFresh ~= nil and not oFresh.castbar:IsShown(),
+    "duplicate ADDED releases the stale overlay (no ghost cast bar)")
+
 H.FireEvent("NAME_PLATE_UNIT_REMOVED", "nameplate1")
 ok(Vigil.plates.nameplate1 == nil, "overlay released on plate removal")
 

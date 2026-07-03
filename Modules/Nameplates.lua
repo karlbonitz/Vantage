@@ -33,7 +33,8 @@ local castOnUpdate = function(cb)
         cb:SetValue(filled < 1 and filled or 1)
     end
     cb.spark:SetPoint("CENTER", cb, "LEFT", cb:GetValue() * cb:GetWidth(), 0)
-    if Vigil.db.showCastTime and remaining > 0 and not o.padlock:IsShown() then
+    -- 0.05 floor: never render a "0.0" frame (pushback can hover there)
+    if Vigil.db.showCastTime and remaining >= 0.05 and not o.padlock:IsShown() then
         o.timeText:SetFormattedText("%.1f", remaining)
     else
         o.timeText:SetText("")
@@ -393,6 +394,17 @@ end
 
 function M:OnAdded(unit)
     if not Vigil.db.enabled then return end
+
+    -- a re-ADD for a token we still hold means we missed the REMOVED event —
+    -- release the old overlay or it leaks, haunting the screen with a stale
+    -- bar anchored to a plate it no longer owns
+    local stale = Vigil.plates[unit]
+    if stale then
+        Vigil.plates[unit] = nil
+        if stale.guid then Vigil.guidToUnit[stale.guid] = nil end
+        Release(stale)
+    end
+
     if not UnitCanAttack("player", unit) or UnitIsDead(unit) then return end
 
     local plate = C_NamePlate.GetNamePlateForUnit(unit)
