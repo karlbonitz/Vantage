@@ -4,7 +4,7 @@
 local addonName, Vigil = ...
 
 Vigil.name = addonName
-Vigil.version = "0.7.0"
+Vigil.version = "0.8.0"
 
 -- ---------------------------------------------------------------------------
 -- Output
@@ -77,6 +77,69 @@ Vigil.WHITE = "Interface\\Buttons\\WHITE8x8"
 Vigil.BAR   = MEDIA .. "bar"    -- smooth vertical-gradient statusbar fill
 Vigil.GLOW  = MEDIA .. "glow"   -- soft radial glow (halo / target glow / shadow)
 Vigil.QUESTION_ICON = 134400    -- INV_Misc_QuestionMark
+
+-- The statusbar fill every bar wears, per db.barTexture ("gradient" | "flat").
+-- Flat is WHITE + the bar's own color: the modern, minimal look.
+function Vigil:BarTex()
+    return (self.db and self.db.barTexture == "flat") and self.WHITE or self.BAR
+end
+
+-- ---------------------------------------------------------------------------
+-- Fonts. All text goes through Vigil:SetFont so the face (db.font) and the
+-- treatment (db.fontStyle: outline | clean | thick) apply everywhere at once.
+-- "clean" trades the outline for a dark drop shadow — reads less chunky at
+-- nameplate sizes. Faces are the four fonts every client ships.
+-- ---------------------------------------------------------------------------
+Vigil.fonts = {
+    { key = "friz",     label = "Friz Quadrata", path = "Fonts\\FRIZQT__.TTF" },
+    { key = "arial",    label = "Arial Narrow",  path = "Fonts\\ARIALN.TTF" },
+    { key = "skurri",   label = "Skurri",        path = "Fonts\\skurri.ttf" },
+    { key = "morpheus", label = "Morpheus",      path = "Fonts\\MORPHEUS.ttf" },
+}
+
+function Vigil:Font()
+    local want = self.db and self.db.font
+    for _, f in ipairs(self.fonts) do
+        if f.key == want then return f.path end
+    end
+    return STANDARD_TEXT_FONT or "Fonts\\FRIZQT__.TTF"
+end
+
+function Vigil:FontFlags()
+    local s = self.db and self.db.fontStyle
+    if s == "clean" then return "" end
+    if s == "thick" then return "THICKOUTLINE" end
+    return "OUTLINE"
+end
+
+-- Apply face + style to a FontString. flagsOverride pins the treatment where
+-- it's structural (the big cue label stays THICK regardless of style).
+function Vigil:SetFont(fs, size, flagsOverride)
+    fs:SetFont(self:Font(), size, flagsOverride or self:FontFlags())
+    if fs.SetShadowColor then
+        local clean = (self.db and self.db.fontStyle) == "clean" and not flagsOverride
+        fs:SetShadowColor(0, 0, 0, clean and 0.9 or 0)
+        fs:SetShadowOffset(1, -1)
+    end
+end
+
+-- ---------------------------------------------------------------------------
+-- Cue alert sound, per db.cueSound. Numeric fallbacks are the stable classic
+-- sound-kit IDs, so a missing SOUNDKIT constant can't silence the cue.
+-- ---------------------------------------------------------------------------
+Vigil.sounds = {
+    { key = "raid",  label = "Raid warning", kit = function() return (SOUNDKIT and SOUNDKIT.RAID_WARNING) or 8959 end },
+    { key = "ready", label = "Ready check",  kit = function() return (SOUNDKIT and SOUNDKIT.READY_CHECK) or 8960 end },
+    { key = "bell",  label = "Alarm bell",   kit = function() return (SOUNDKIT and SOUNDKIT.ALARM_CLOCK_WARNING_3) or 12867 end },
+}
+
+function Vigil:CueSound()
+    local want = self.db and self.db.cueSound
+    for _, s in ipairs(self.sounds) do
+        if s.key == want then return s.kit() end
+    end
+    return self.sounds[1].kit()
+end
 
 -- ---------------------------------------------------------------------------
 -- Crisp 1px border from four edge textures (reads cleaner than a Backdrop at

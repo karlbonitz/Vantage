@@ -345,9 +345,26 @@ local function CreateOverlay()
     return f
 end
 
+-- Style knobs that can change at runtime (cast bar height, bar fill, fonts).
+-- Runs per Acquire and live via M:ApplyStyle when an option moves.
+local function styleOverlay(o)
+    local h = Vigil.db.castBarHeight or BAR_H
+    o:SetHeight(h)
+    o.iconF:SetSize(h + 2, h + 2)
+    o.castbar:SetStatusBarTexture(Vigil:BarTex())
+    Vigil:SetFont(o.timeText, 8)
+    Vigil:SetFont(o.name, 8)
+    Vigil:SetFont(o.kickText, 15, "THICKOUTLINE") -- the shout stays THICK by design
+end
+
+function M:ApplyStyle()
+    for _, o in pairs(Vigil.plates or {}) do styleOverlay(o) end
+end
+
 local function Acquire()
     local o = table.remove(pool) or CreateOverlay()
     o:SetScale(Vigil.db.scale or 1)
+    styleOverlay(o)
     return o
 end
 

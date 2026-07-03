@@ -20,6 +20,15 @@ end
 local function refreshAuras()
     if Vigil.Auras then Vigil.Auras:ApplyStyle(); Vigil.Auras:RefreshAll() end
 end
+local function refreshOverlays()
+    if Vigil.Nameplates and Vigil.Nameplates.ApplyStyle then Vigil.Nameplates:ApplyStyle() end
+end
+-- fonts / bar fill touch every module at once
+local function restyleAll()
+    refreshSkin()
+    refreshOverlays()
+    refreshAuras()
+end
 local function applyScale()
     for _, o in pairs(Vigil.plates or {}) do o:SetScale(Vigil.db.scale or 1) end
 end
@@ -40,10 +49,10 @@ function M:OnEnable()
     scroll:SetPoint("TOPLEFT", 0, -4)
     scroll:SetPoint("BOTTOMRIGHT", -27, 4)
     local content = CreateFrame("Frame")
-    content:SetSize(590, 740)
+    content:SetSize(590, 920)
     scroll:SetScrollChild(content)
 
-    local checks, sliders = {}, {}
+    local checks, sliders, drops = {}, {}, {}
     local healthTextDD, labelDD, accentDD -- forward refs for refresh()
 
     -- ---- widget factories -------------------------------------------------
@@ -85,6 +94,12 @@ function M:OnEnable()
         return cb
     end
 
+    -- fmt is a format string, or a function(v) -> string for special labels
+    local function fmtv(fmt, v)
+        if type(fmt) == "function" then return fmt(v) end
+        return fmt:format(v)
+    end
+
     local function slider(x, y, key, label, minV, maxV, step, fmt, onChange)
         local name = wname()
         local s = CreateFrame("Slider", name, content, "OptionsSliderTemplate")
@@ -93,10 +108,10 @@ function M:OnEnable()
         s:SetMinMaxValues(minV, maxV)
         s:SetValueStep(step)
         if s.SetObeyStepOnDrag then s:SetObeyStepOnDrag(true) end
-        _G[name .. "Low"]:SetText(fmt:format(minV))
-        _G[name .. "High"]:SetText(fmt:format(maxV))
+        _G[name .. "Low"]:SetText(fmtv(fmt, minV))
+        _G[name .. "High"]:SetText(fmtv(fmt, maxV))
         s.key = key
-        s.updateText = function(v) _G[name .. "Text"]:SetText(label .. ": " .. fmt:format(v)) end
+        s.updateText = function(v) _G[name .. "Text"]:SetText(label .. ": " .. fmtv(fmt, v)) end
         s:SetScript("OnValueChanged", function(_, v)
             v = math.floor(v / step + 0.5) * step
             Vigil.db[key] = v
@@ -105,6 +120,36 @@ function M:OnEnable()
         end)
         sliders[#sliders + 1] = s
         return s
+    end
+
+    -- labeled dropdown writing db[key]; choices = { {value, "Label"}, ... }
+    local function dropdown(x, y, key, label, choices, width, onChange)
+        local lb = content:CreateFontString(nil, "ARTWORK", "GameFontHighlight")
+        lb:SetPoint("TOPLEFT", x + 4, y - 5)
+        lb:SetText(label)
+        local dd = CreateFrame("Frame", wname(), content, "UIDropDownMenuTemplate")
+        dd:SetPoint("LEFT", lb, "RIGHT", -8, -2)
+        UIDropDownMenu_SetWidth(dd, width or 100)
+        local function textFor(v)
+            for _, c in ipairs(choices) do if c[1] == v then return c[2] end end
+            return choices[1][2]
+        end
+        UIDropDownMenu_Initialize(dd, function()
+            for _, c in ipairs(choices) do
+                local info = UIDropDownMenu_CreateInfo()
+                info.text = c[2]
+                info.checked = (Vigil.db[key] == c[1])
+                info.func = function()
+                    Vigil.db[key] = c[1]
+                    UIDropDownMenu_SetText(dd, c[2])
+                    if onChange then onChange() end
+                end
+                UIDropDownMenu_AddButton(info)
+            end
+        end)
+        dd.key, dd.textFor = key, textFor
+        drops[#drops + 1] = dd
+        return dd
     end
 
     -- ---- title row ---------------------------------------------------------
@@ -153,8 +198,8 @@ function M:OnEnable()
     check(COL2, y, "focusDim", "Fade other plates when targeting",
         "While you have a target, everything else — bars, cast bars, DoT rows — fades to the opacity set below, so the selected enemy is unmistakable. A live INTERRUPT cue never fades.", refreshSkin)
     y = y - 24
-    check(PAD, y, "executeMark", "Execute mark at 20%",
-        "A quiet tick on the health bar that lights up red (with the HP text) once the mob is in execute range.", refreshSkin)
+    check(PAD, y, "executeMark", "Execute mark",
+        "A quiet tick on the health bar that lights up red (with the HP text) once the mob drops below the execute threshold set under Style.", refreshSkin)
 
     local accLabel = content:CreateFontString(nil, "ARTWORK", "GameFontHighlight")
     accLabel:SetPoint("TOPLEFT", COL2 + 4, y - 5)
@@ -220,6 +265,30 @@ function M:OnEnable()
         end
     end)
     slider(COL2, y, "nameSize", "Name font size", 8, 14, 1, "%d", refreshSkin)
+    y = y - 44
+
+    y = header("Style", y)
+    local FONT_CHOICES, SOUND_CHOICES = {}, {}
+    for _, f in ipairs(Vigil.fonts) do FONT_CHOICES[#FONT_CHOICES + 1] = { f.key, f.label } end
+    for _, s in ipairs(Vigil.sounds) do SOUND_CHOICES[#SOUND_CHOICES + 1] = { s.key, s.label } end
+    dropdown(PAD, y, "font", "Font", FONT_CHOICES, 110, restyleAll)
+    dropdown(COL2, y, "fontStyle", "Text style", {
+        { "outline", "Outline" },
+        { "clean",   "Clean (shadow)" },
+        { "thick",   "Thick outline" },
+    }, 110, restyleAll)
+    y = y - 30
+    dropdown(PAD, y, "barTexture", "Bar fill", {
+        { "gradient", "Gradient" },
+        { "flat",     "Flat" },
+    }, 110, restyleAll)
+    dropdown(COL2, y, "cueSound", "Alert sound", SOUND_CHOICES, 110)
+    y = y - 30
+    slider(PAD, y, "barHeight", "Bar height", 0, 24, 1,
+        function(v) return v < 6 and "auto" or ("%d"):format(v) end, refreshSkin)
+    slider(COL2, y, "castBarHeight", "Cast bar height", 8, 20, 1, "%d", refreshOverlays)
+    y = y - 44
+    slider(PAD, y, "execPct", "Execute threshold", 10, 35, 5, "%d%%", refreshSkin)
     y = y - 44
 
     y = header("Cast bars & interrupts", y)
@@ -315,13 +384,15 @@ function M:OnEnable()
         UIDropDownMenu_SetText(healthTextDD, htLabel(Vigil.db.healthText))
         UIDropDownMenu_SetText(labelDD, lpText(Vigil.db.labelPos))
         UIDropDownMenu_SetText(accentDD, accText(Vigil.db.accent))
+        for _, dd in ipairs(drops) do
+            UIDropDownMenu_SetText(dd, dd.textFor(Vigil.db[dd.key]))
+        end
     end
 
     reset:SetScript("OnClick", function()
         for k, v in pairs(Vigil.defaults) do Vigil.db[k] = v end
         refresh()
-        refreshSkin()
-        refreshAuras()
+        restyleAll()
         applyScale()
         if Vigil.Nameplates then Vigil.Nameplates:ReanchorKicks() end
         Vigil:Print("Settings reset to defaults.")

@@ -172,7 +172,7 @@ end
 -- Execute marker: a faint tick at 20% that lights up (with red HP text) once
 -- the mob is in execute range. Useful for every class; pretty for all of them.
 -- ---------------------------------------------------------------------------
-local EXEC_PCT = 0.20
+local function execPct() return (Vigil.db.execPct or 20) / 100 end
 
 local function updateExec(uf)
     local ex = uf.__vigilExec
@@ -183,7 +183,7 @@ local function updateExec(uf)
     local _, max = hb:GetMinMaxValues()
     if not max or max <= 0 then ex:Hide(); return end
     ex:Show()
-    if v / max <= EXEC_PCT then
+    if v / max <= execPct() then
         ex:SetWidth(2)
         ex:SetVertexColor(1, 0.35, 0.30, 0.95) -- in execute range: a lit marker
     else
@@ -219,7 +219,7 @@ local function updateHealthText(uf)
         fs:SetFormattedText("%s · %d%%", fmtNum(v), math.floor(v / max * 100 + 0.5))
     end
     -- execute-range urgency rides the HP text too
-    if Vigil.db.executeMark and v / max <= EXEC_PCT then
+    if Vigil.db.executeMark and v / max <= execPct() then
         fs:SetTextColor(1, 0.35, 0.30, 1)
     else
         fs:SetTextColor(1, 1, 1, 0.95)
@@ -495,12 +495,28 @@ local function applySkin(uf, unit)
     if not uf.__vigilSkinned then
         if not build(uf) then return end
     end
-    uf.healthBar:SetStatusBarTexture(Vigil.BAR)   -- texture persists; cheap to re-assert per add
+    uf.healthBar:SetStatusBarTexture(Vigil:BarTex()) -- persists; cheap to re-assert per add
     uf.__vigilShadow:Show()
     uf.__vigilBG:Show()
     uf.__vigilBorder:Show()
     uf.__vigilGlass:Show()
     setBlizzDecor(uf, false)
+
+    -- custom bar height (db.barHeight >= 6; below that = Blizzard's default).
+    -- The container carries the height on 2.5.5+ (the bar fills it); the bar
+    -- itself does on 2.5.4-era clients. Original height remembered per pooled
+    -- frame the first time we see it, for restore.
+    local hbHost = uf.HealthBarsContainer or uf.healthBar
+    if not uf.__vigilOrigBarH then
+        local h0 = hbHost:GetHeight()
+        if h0 and h0 > 0 then uf.__vigilOrigBarH = h0 end
+    end
+    local bh = Vigil.db.barHeight or 0
+    if bh >= 6 then
+        hbHost:SetHeight(bh)
+    elseif uf.__vigilOrigBarH then
+        hbHost:SetHeight(uf.__vigilOrigBarH)
+    end
 
     -- fresh unit on this frame: no cross-mob bites, no stale threat border
     purgeBites(uf)
@@ -510,19 +526,19 @@ local function applySkin(uf, unit)
     if w and w > 0 then
         local ex = uf.__vigilExec
         ex:ClearAllPoints()
-        ex:SetPoint("TOP", uf.healthBar, "TOPLEFT", w * EXEC_PCT, 0)
-        ex:SetPoint("BOTTOM", uf.healthBar, "BOTTOMLEFT", w * EXEC_PCT, 0)
+        ex:SetPoint("TOP", uf.healthBar, "TOPLEFT", w * execPct(), 0)
+        ex:SetPoint("BOTTOM", uf.healthBar, "BOTTOMLEFT", w * execPct(), 0)
     end
     updateExec(uf)
     uf.__vigilHover:Hide()
     if uf.name then
-        uf.name:SetFont(STANDARD_TEXT_FONT, Vigil.db.nameSize or 10, "OUTLINE")
+        Vigil:SetFont(uf.name, Vigil.db.nameSize or 10)
         local r, g, b = classColor(unitOf(uf))
         if r then uf.name:SetTextColor(r, g, b) else uf.name:SetTextColor(1, 1, 1) end
     end
     local small = math.max(7, (Vigil.db.nameSize or 10) - 2)
-    uf.__vigilHP:SetFont(STANDARD_TEXT_FONT, small, "OUTLINE")
-    uf.__vigilLvl:SetFont(STANDARD_TEXT_FONT, small, "OUTLINE")
+    Vigil:SetFont(uf.__vigilHP, small)
+    Vigil:SetFont(uf.__vigilLvl, small)
     applyBarColor(uf)
     updateHealthText(uf)
     updateLevel(uf)
@@ -557,6 +573,10 @@ local function removeSkin(uf)
     end
     local hb = uf.healthBar
     if uf.__vigilOrigTex then hb:SetStatusBarTexture(uf.__vigilOrigTex) end
+    if uf.__vigilOrigBarH then
+        local hbHost = uf.HealthBarsContainer or hb
+        hbHost:SetHeight(uf.__vigilOrigBarH)
+    end
     uf.__vigilShadow:Hide()
     uf.__vigilBG:Hide()
     uf.__vigilBorder:Hide()

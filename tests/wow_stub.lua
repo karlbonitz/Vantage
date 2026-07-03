@@ -467,6 +467,7 @@ function Harness.MakePlate()
     local plate = CreateFrame("Frame")
     local uf = CreateFrame("Frame", nil, plate)
     local container = CreateFrame("Frame", nil, uf)
+    container:SetHeight(11) -- the client's default bar height (restore target)
     uf.HealthBarsContainer = container
     container.border = CreateFrame("Frame", nil, container) -- Nameplate-Border art, strata HIGH
     local hb = CreateFrame("StatusBar", nil, container)

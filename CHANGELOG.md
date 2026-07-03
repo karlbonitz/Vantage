@@ -1,5 +1,21 @@
 # Changelog
 
+## v0.8.0 — the make-it-yours update
+A new **Style** section in `/vigil` — the skin's whole look is now tunable,
+live, with zero-config defaults unchanged:
+
+- **Font face** (Friz Quadrata, Arial Narrow, Skurri, Morpheus) and **text
+  style** (Outline / Clean with drop shadow / Thick) — applied everywhere at
+  once: names, levels, HP, cast text, aura timers. The INTERRUPT cue label
+  deliberately stays thick — it's a shout.
+- **Bar fill**: the shipped gradient, or a flat modern fill.
+- **Bar height**: resize the health bar (or leave it on "auto" = Blizzard's
+  default), plus a separate **cast bar height**.
+- **Execute threshold**: the execute tick + red HP text now trigger at your
+  chosen percent (10–35%), not a fixed 20%.
+- **Alert sound**: pick the cue's voice — Raid warning, Ready check, or
+  Alarm bell.
+
 ## v0.7.0 — the stellar pass
 
 Late fixes folded into this release (from in-game feedback):

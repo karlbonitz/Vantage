@@ -65,8 +65,15 @@ local defaults = {
     bites        = true,   -- "damage bite" flash: a bright sliver marks health just lost
     focusDim     = true,   -- fade non-target plates while you have a target
     focusAlpha   = 0.5,    -- how far non-targets fade (lower = stronger fade)
-    executeMark  = true,   -- 20% execute tick on the health bar (+ red HP text below it)
+    executeMark  = true,   -- execute tick on the health bar (+ red HP text below it)
+    execPct      = 20,     -- execute threshold, percent of max health
     accent       = "gold", -- accent theme: gold | teal | violet | ice
+    font         = "friz", -- font face: friz | arial | skurri | morpheus
+    fontStyle    = "outline", -- text treatment: outline | clean (shadow) | thick
+    barTexture   = "gradient", -- statusbar fill: gradient | flat
+    barHeight    = 0,      -- health bar height in px; 0 (or <6) = Blizzard's default
+    castBarHeight= 12,     -- Vigil cast bar height in px
+    cueSound     = "raid", -- alert sound: raid | ready | bell
     friendly     = true,   -- also skin FRIENDLY plates (when Blizzard shows them)
     classColors  = true,   -- class-color PLAYER health bars (enemy + friendly)
     targetGlow   = true,   -- soft gold glow behind your current target's plate
@@ -96,8 +103,7 @@ function Vigil:PlayInterruptSound()
     local now = GetTime()
     if now - lastSound < 0.4 then return end
     lastSound = now
-    local kit = (SOUNDKIT and SOUNDKIT.RAID_WARNING) or 8959
-    pcall(PlaySound, kit, "Master")
+    pcall(PlaySound, Vigil:CueSound(), "Master")
 end
 
 -- ===========================================================================
@@ -130,7 +136,7 @@ Vigil:RegisterEvent("PLAYER_LOGIN", function()
     if not prev then
         Vigil:Print("First time? Make sure enemy nameplates are ON (default key |cffffd100V|r), then target any enemy and type |cffffd100/vigil test|r to see the interrupt cue fire.")
     elseif prev ~= Vigil.version then
-        Vigil:Print(("Updated |cffffd100%s -> %s|r. New: cues are range-aware, cast bars flash their outcome (KICKED / MISSED / WASTED), and the cue label position is configurable in |cffffd100/vigil|r.")
+        Vigil:Print(("Updated |cffffd100%s -> %s|r. New: a Style section in |cffffd100/vigil|r — font face & treatment, gradient or flat bars, bar heights, execute threshold, and alert sound.")
             :format(prev, Vigil.version))
     end
 end)

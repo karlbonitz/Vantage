@@ -99,6 +99,49 @@ SlashCmdList["VIGIL"]("skin") -- back on
 eq(blizzBorder.__alpha, 0, "rounded border re-suppressed when skin back on")
 eq(blizzCB.__unit, nil, "Blizzard cast bar re-detached when skin back on")
 
+-- 2d. Style options apply live (v0.8.0): bar heights, fonts, fills, thresholds
+eq(Vigil.db.barHeight, 0, "bar height defaults to auto")
+Vigil.db.barHeight = 16
+Vigil.Skin:RefreshAll()
+eq(blizzUF.HealthBarsContainer.__h, 16, "custom bar height applied to the container")
+Vigil.db.barHeight = 0
+Vigil.Skin:RefreshAll()
+eq(blizzUF.HealthBarsContainer.__h, 11, "auto bar height restores the client default")
+
+Vigil.db.font = "arial"; Vigil.db.fontStyle = "clean"; Vigil.db.barTexture = "flat"
+Vigil.db.castBarHeight = 16
+Vigil.Skin:RefreshAll()
+Vigil.Nameplates:ApplyStyle()
+ok(blizzUF.name.__font and blizzUF.name.__font[1] == "Fonts\\ARIALN.TTF",
+    "font face applies to the plate name")
+eq(blizzUF.name.__font and blizzUF.name.__font[3], "", "clean text style drops the outline")
+eq(blizzUF.healthBar.__bartex.__tex, "Interface\\Buttons\\WHITE8x8", "flat fill applies to the health bar")
+eq(o.__h, 16, "cast bar height applies to the overlay")
+eq(o.iconF.__h, 18, "cast icon tracks the cast bar height")
+eq(o.castbar.__bartex.__tex, "Interface\\Buttons\\WHITE8x8", "flat fill applies to the cast bar")
+eq(o.kickText.__font and o.kickText.__font[3], "THICKOUTLINE", "cue label stays THICK regardless of text style")
+-- back to stock for the rest of the session
+Vigil.db.font = "friz"; Vigil.db.fontStyle = "outline"; Vigil.db.barTexture = "gradient"
+Vigil.db.castBarHeight = 12
+Vigil.Skin:RefreshAll()
+Vigil.Nameplates:ApplyStyle()
+
+-- execute threshold slider: 25% health is quiet at 20%, lit once raised to 30%
+blizzUF.healthBar:SetValue(25)
+eq(blizzUF.__vigilExec.__w, 1, "25% health: exec tick quiet at default 20% threshold")
+Vigil.db.execPct = 30
+Vigil.Skin:RefreshAll()
+eq(blizzUF.__vigilExec.__w, 2, "25% health: exec tick lit once threshold raised to 30%")
+Vigil.db.execPct = 20
+blizzUF.healthBar:SetValue(100)
+Vigil.Skin:RefreshAll()
+
+-- cue sound choice resolves through the helper the cue actually plays
+eq(Vigil:CueSound(), 8959, "default cue sound = raid warning")
+Vigil.db.cueSound = "ready"
+eq(Vigil:CueSound(), 8960, "cue sound choice resolves")
+Vigil.db.cueSound = "raid"
+
 -- 3. Kickable cast starts (live API path): Greater Heal is in the Intel Pack
 H.units.nameplate1.casting = {
     name = "Greater Heal", spellID = 25314,

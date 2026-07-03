@@ -28,8 +28,8 @@ local function maxIcons() return Vigil.db.auraMax or 5 end
 -- ---------------------------------------------------------------------------
 local function styleButton(b, s)
     b:SetSize(s, s)
-    b.time:SetFont(STANDARD_TEXT_FONT, math.max(8, math.floor(s * 0.5)), "OUTLINE")
-    b.count:SetFont(STANDARD_TEXT_FONT, math.max(7, math.floor(s * 0.4)), "OUTLINE")
+    Vigil:SetFont(b.time, math.max(8, math.floor(s * 0.5)))
+    Vigil:SetFont(b.count, math.max(7, math.floor(s * 0.4)))
 end
 
 local function makeButton(row, i)

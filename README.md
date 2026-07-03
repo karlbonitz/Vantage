@@ -20,10 +20,13 @@ target, a bordered-icon cast bar with a live countdown, and DoT timers with
 dispel-colored borders and a draining cooldown swipe. Plates *react*, too:
 damage flashes bite out of the bar as mobs lose health, the plate under your
 cursor lights up, non-target plates dim so your kill target reads instantly,
-and an execute tick lights up at 20%. Four accent themes (Gold / Teal /
-Violet / Ice) re-skin the cue in one click. Friendly plates get the same skin
-when Blizzard shows them. Every piece is configurable from the options panel
-(`/vigil`), and the defaults are tuned to look great with zero setup.
+and an execute tick lights up at your chosen threshold. Four accent themes
+(Gold / Teal / Violet / Ice) re-skin the cue in one click, and a **Style**
+section tunes the whole look live: font face & treatment, gradient or flat
+bar fills, health/cast bar heights, and the alert sound. Friendly plates get
+the same skin when Blizzard shows them. Every piece is configurable from the
+options panel (`/vigil`), and the defaults are tuned to look great with zero
+setup.
 
 > Dependency-free by design (no libraries), so it loads instantly. Shareable
 > "Intel Pack" import strings and the Vigil Parse data layer are the next
