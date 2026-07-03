@@ -19,6 +19,14 @@ live, with zero-config defaults unchanged:
   edges, accent-gold thumb, aligned min/max labels) — the client's stock
   slider template renders with no track art on 2.5.5, leaving the thumb
   floating over nothing.
+- **Vigil Parse: the roster.** Parse now profiles every FRIENDLY player it
+  witnesses landing an interrupt — grouped with you or just nearby: name,
+  class, lifetime kicks (and how many while in your groups), favorite tool,
+  first/last seen. Stored account-wide (capped at 400 profiles, longest
+  unseen pruned), browsable with **`/vigil roster`**, included in
+  `/vigil export`, and each session now tallies who carried the kicks
+  (shown in `/vigil parse`). Known limitation: pet interrupts (Felhunter
+  Spell Lock) aren't attributed to their owner yet.
 
 ## v0.7.0 — the stellar pass
 

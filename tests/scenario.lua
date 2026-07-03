@@ -169,7 +169,8 @@ eq(o.active and o.active.code, "ready", "back in range: ready tier")
 eq(H.sounds, 2, "sound fires once more when cue reappears")
 
 -- 6. Someone kicks it: KICKED flash, then reset
-H.SetCLEU(nil, "SPELL_INTERRUPT", nil, "Player-1-ME", "Testchar", 0, 0, MOB_GUID,
+-- (srcFlags 0x511 = mine + friendly + player-controlled + TYPE_PLAYER)
+H.SetCLEU(nil, "SPELL_INTERRUPT", nil, "Player-1-ME", "Testchar", 0x511, 0, MOB_GUID,
     "Cabal Acolyte", 0, 0, 2139, "Counterspell", 0, 25314, "Greater Heal")
 H.FireEvent("COMBAT_LOG_EVENT_UNFILTERED")
 eq(o.flashing, "kicked", "KICKED flash started")
@@ -178,6 +179,27 @@ ok(o.active == nil, "cast record resolved at flash start")
 H.Advance(1.0)
 ok(not o.castbar:IsShown(), "bar cleared after flash")
 ok(o.flashing == nil, "flash state cleared")
+
+-- 6b. The roster: my kick above built MY profile; a party member's interrupt
+-- (flags 0x512 = party + friendly + player-controlled + TYPE_PLAYER) builds
+-- theirs — even on a mob Vigil isn't tracking.
+local myProf = VigilParseDB.roster["Testchar"]
+ok(myProf and myProf.kicks == 1, "my own interrupt lands in the roster")
+H.SetCLEU(nil, "SPELL_INTERRUPT", nil, "Player-2-KICKER", "Kickbot", 0x512, 0,
+    "Creature-0-9999", "Some Mob", 0, 0, 2139, "Counterspell", 0, 133, "Fireball")
+H.FireEvent("COMBAT_LOG_EVENT_UNFILTERED")
+local prof = VigilParseDB.roster["Kickbot"]
+ok(prof ~= nil, "roster profile created for a party member's interrupt")
+eq(prof and prof.kicks, 1, "roster kick counted")
+eq(prof and prof.tools and prof.tools["Counterspell"], 1, "roster tool tallied")
+eq(prof and prof.gkicks, 1, "grouped kick counted from the party flag")
+eq(prof and prof.class, "MAGE", "class resolved via GetPlayerInfoByGUID")
+-- a HOSTILE player's kick (0x548 = hostile reaction, outsider) builds nothing
+H.SetCLEU(nil, "SPELL_INTERRUPT", nil, "Player-3-ENEMY", "Ganker", 0x548, 0,
+    "Creature-0-9999", "Some Mob", 0, 0, 2139, "Counterspell", 0, 133, "Fireball")
+H.FireEvent("COMBAT_LOG_EVENT_UNFILTERED")
+ok(VigilParseDB.roster["Ganker"] == nil, "hostile players stay out of the roster")
+SlashCmdList["VIGIL"]("roster") -- smoke: prints without error
 
 -- 7. CLEU-fallback cast (no live cast info), completes while ready -> MISSED
 H.units.nameplate1.casting = nil
@@ -327,6 +349,8 @@ SlashCmdList["VIGIL"]("test")
 local export = Vigil.ParseExport:BuildExport()
 ok(type(export) == "string" and export:find('"sessions"', 1, true) ~= nil, "export builds JSON")
 ok(export:find('"miss":true', 1, true) ~= nil, "export contains the let-through row")
+ok(export:find('"roster"', 1, true) ~= nil and export:find("Kickbot", 1, true) ~= nil,
+    "export carries the roster profiles")
 
 -- plate inspector (/vigil plate): dumps the frame tree with parentKeys
 local dump = Vigil.Inspect:DumpPlate(H.units.nameplate2.plate)

@@ -429,6 +429,23 @@ end
 -- ---------------------------------------------------------------------------
 function GetRealmName() return "Dreamscythe" end
 function GetRealZoneText() return "Shadow Labyrinth" end
+
+-- WoW ships a bit library on 2.5.x; plain Lua 5.1 here, so a pure-Lua band
+bit = bit or {}
+bit.band = bit.band or function(a, b)
+    local r, p = 0, 1
+    while a > 0 and b > 0 do
+        if a % 2 == 1 and b % 2 == 1 then r = r + p end
+        a = math.floor(a / 2)
+        b = math.floor(b / 2)
+        p = p * 2
+    end
+    return r
+end
+
+function GetPlayerInfoByGUID(guid)
+    return "Mage", "MAGE" -- localizedClass, englishClass, ...
+end
 function GetZoneText() return "Shadow Labyrinth" end
 function GetInstanceInfo() return "Shadow Labyrinth", "party", 2, "Heroic", 5, 0, false, 555, 5 end
 function IsInInstance() return true, "party" end

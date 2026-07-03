@@ -186,6 +186,8 @@ SlashCmdList["VIGIL"] = function(msg)
         Vigil:CheckInterrupts()
     elseif cmd == "parse" then
         if Vigil.Parse then Vigil.Parse:Summary() end
+    elseif cmd == "roster" or cmd == "crew" then
+        if Vigil.Parse then Vigil.Parse:Roster() end
     elseif cmd == "export" then
         if Vigil.ParseExport then Vigil.ParseExport:Toggle() end
     elseif cmd == "plate" then
@@ -215,6 +217,7 @@ function Vigil:ShowHelp()
     print("  /vigil flash    - outcome flash on the bar (KICKED/MISSED/WASTED)")
     print("  /vigil check    - show your detected interrupts + readiness")
     print("  /vigil parse    - this session's interrupt report (Vigil Parse)")
+    print("  /vigil roster   - interrupt profiles of every player Vigil has seen")
     print("  /vigil export   - copy session data for the web report")
 end
 

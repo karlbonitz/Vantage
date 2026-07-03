@@ -71,6 +71,7 @@ CurseForge / Wago listings come with v1.0. Until then, from GitHub:
 | `/vigil range` | only shout when the target is within your stop's actual range |
 | `/vigil flash` | outcome flash as a flagged cast ends (KICKED / MISSED / WASTED) |
 | `/vigil parse` | chat summary of this session's interrupt stats (Vigil Parse) |
+| `/vigil roster` | lifetime interrupt profiles of every friendly player Vigil has witnessed |
 | `/vigil export` | copy-paste window with your session data for the web report |
 | `/vigil` | **open the options panel** (`/vigil help` lists chat commands) |
 

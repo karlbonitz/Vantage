@@ -62,6 +62,7 @@ function M:BuildExport()
         v        = 1,
         exported = time(),
         sessions = (VigilParseDB and VigilParseDB.sessions) or {},
+        roster   = (VigilParseDB and VigilParseDB.roster) or {},
     }
     local out = {}
     enc(payload, out)
