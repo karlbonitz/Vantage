@@ -15,6 +15,10 @@ live, with zero-config defaults unchanged:
   chosen percent (10–35%), not a fixed 20%.
 - **Alert sound**: pick the cue's voice — Raid warning, Ready check, or
   Alarm bell.
+- The options panel's **sliders are now Vigil-drawn** (dark groove, 1px
+  edges, accent-gold thumb, aligned min/max labels) — the client's stock
+  slider template renders with no track art on 2.5.5, leaving the thumb
+  floating over nothing.
 
 ## v0.7.0 — the stellar pass
 

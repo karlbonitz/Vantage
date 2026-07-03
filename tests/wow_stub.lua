@@ -225,6 +225,15 @@ end
 function Frame.GetValue(self) return self.__value or 0 end
 function Frame.SetValueStep() end
 function Frame.SetObeyStepOnDrag() end
+function Frame.SetOrientation() end
+function Frame.SetThumbTexture(self, t)
+    self.__thumb = self.__thumb or newRegion("texture")
+    self.__thumb:SetTexture(t)
+end
+function Frame.GetThumbTexture(self)
+    self.__thumb = self.__thumb or newRegion("texture")
+    return self.__thumb
+end
 
 -- CheckButton / Button
 function Frame.SetChecked(self, c) self.__checked = not not c end

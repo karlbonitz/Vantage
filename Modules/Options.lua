@@ -100,18 +100,65 @@ function M:OnEnable()
         return fmt:format(v)
     end
 
+    -- Hand-rolled slider. The 2.5.5 client's OptionsSliderTemplate renders
+    -- with no track art (transparent groove, thumb adrift of the labels), so
+    -- Vigil draws its own — dark groove, 1px edges, accent thumb — and owns
+    -- the alignment. Same lesson as the nameplates: never lean on Blizzard
+    -- template art on this client.
     local function slider(x, y, key, label, minV, maxV, step, fmt, onChange)
-        local name = wname()
-        local s = CreateFrame("Slider", name, content, "OptionsSliderTemplate")
-        s:SetPoint("TOPLEFT", x + 6, y - 12)
-        s:SetWidth(230)
+        local s = CreateFrame("Slider", nil, content)
+        s:SetOrientation("HORIZONTAL")
+        s:SetPoint("TOPLEFT", x + 6, y - 14)
+        s:SetSize(230, 14)
+        s:EnableMouse(true)
         s:SetMinMaxValues(minV, maxV)
         s:SetValueStep(step)
         if s.SetObeyStepOnDrag then s:SetObeyStepOnDrag(true) end
-        _G[name .. "Low"]:SetText(fmtv(fmt, minV))
-        _G[name .. "High"]:SetText(fmtv(fmt, maxV))
+
+        -- groove: dark fill + 1px edges, drawn on the slider frame itself so
+        -- the thumb (ARTWORK layer) always rides above them
+        local groove = s:CreateTexture(nil, "BACKGROUND")
+        groove:SetTexture(Vigil.WHITE)
+        groove:SetVertexColor(0.05, 0.05, 0.065, 0.9)
+        groove:SetHeight(6)
+        groove:SetPoint("LEFT", 0, 0)
+        groove:SetPoint("RIGHT", 0, 0)
+        local function edge()
+            local t = s:CreateTexture(nil, "BORDER")
+            t:SetTexture(Vigil.WHITE)
+            t:SetVertexColor(0, 0, 0, 1)
+            return t
+        end
+        local eT, eB, eL, eR = edge(), edge(), edge(), edge()
+        eT:SetHeight(1); eT:SetPoint("BOTTOMLEFT", groove, "TOPLEFT", -1, 0);  eT:SetPoint("BOTTOMRIGHT", groove, "TOPRIGHT", 1, 0)
+        eB:SetHeight(1); eB:SetPoint("TOPLEFT", groove, "BOTTOMLEFT", -1, 0);  eB:SetPoint("TOPRIGHT", groove, "BOTTOMRIGHT", 1, 0)
+        eL:SetWidth(1);  eL:SetPoint("TOPRIGHT", groove, "TOPLEFT", 0, 1);     eL:SetPoint("BOTTOMRIGHT", groove, "BOTTOMLEFT", 0, -1)
+        eR:SetWidth(1);  eR:SetPoint("TOPLEFT", groove, "TOPRIGHT", 0, 1);     eR:SetPoint("BOTTOMLEFT", groove, "BOTTOMRIGHT", 0, -1)
+
+        -- thumb: accent-colored, taller than the groove, centered on it
+        s:SetThumbTexture(Vigil.WHITE)
+        local th = s:GetThumbTexture()
+        th:SetSize(8, 14)
+        th:SetDrawLayer("ARTWORK")
+        local tr, tg, tb = Vigil:RGB("kick")
+        th:SetVertexColor(tr, tg, tb)
+        s:SetScript("OnEnter", function()
+            th:SetVertexColor(math.min(tr + 0.15, 1), math.min(tg + 0.15, 1), math.min(tb + 0.15, 1))
+        end)
+        s:SetScript("OnLeave", function() th:SetVertexColor(tr, tg, tb) end)
+
+        -- label + live value above; min/max quietly under the track's ends
+        local text = s:CreateFontString(nil, "OVERLAY", "GameFontHighlight")
+        text:SetPoint("BOTTOMLEFT", s, "TOPLEFT", 0, 3)
+        local lo = s:CreateFontString(nil, "OVERLAY", "GameFontDisableSmall")
+        lo:SetPoint("TOPLEFT", s, "BOTTOMLEFT", 0, -1)
+        lo:SetText(fmtv(fmt, minV))
+        local hi = s:CreateFontString(nil, "OVERLAY", "GameFontDisableSmall")
+        hi:SetPoint("TOPRIGHT", s, "BOTTOMRIGHT", 0, -1)
+        hi:SetText(fmtv(fmt, maxV))
+
         s.key = key
-        s.updateText = function(v) _G[name .. "Text"]:SetText(label .. ": " .. fmtv(fmt, v)) end
+        s.updateText = function(v) text:SetText(label .. ": " .. fmtv(fmt, v)) end
         s:SetScript("OnValueChanged", function(_, v)
             v = math.floor(v / step + 0.5) * step
             Vigil.db[key] = v
