@@ -62,7 +62,10 @@ local function onCLEU()
         end
     end
 
-    local unit = Vigil.guidToUnit[srcGUID]
+    -- whose cast bar is this about? For SPELL_INTERRUPT the caster is the
+    -- DESTINATION (source = whoever kicked it); for everything else, the source.
+    local casterGUID = (sub == "SPELL_INTERRUPT") and dstGUID or srcGUID
+    local unit = Vigil.guidToUnit[casterGUID]
     if not unit then return end
     local overlay = Vigil.plates[unit]
     if not overlay then return end

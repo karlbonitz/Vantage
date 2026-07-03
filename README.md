@@ -158,6 +158,19 @@ entirely in your browser. Nothing is uploaded anywhere.
   breakdowns, CC-break/dispel tracking, then the hosted backend ("the utility
   parse Warcraft Logs forgot").
 
+## Development
+
+`tests/` holds a headless smoke test: a stubbed WoW 2.5.x API (real Lua 5.1
+via [lupa](https://pypi.org/project/lupa/)) that loads the whole addon and
+drives a fake session — casts, range changes, interrupts, flashes, slash
+commands, export — with assertions, once per class archetype. It is not a
+substitute for in-game testing, but it catches load errors and event-logic
+bugs before they reach a player.
+
+```
+pip install lupa && python3 tests/run.py
+```
+
 ## Versioning & releases
 
 - `## Interface: 20504, 20505` in the TOC targets the 2.5.4/2.5.5 clients; if

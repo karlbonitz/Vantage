@@ -27,6 +27,11 @@ of only in the after-session report.
 - Fix: an instant spell succeeding mid-cast no longer clears the cast bar of
   the real cast still in flight — both detection paths now match the resolving
   spell against the one being tracked.
+- Fix (pre-0.6.0 bug): on the combat-log fallback path, an interrupted cast's
+  bar never cleared — `SPELL_INTERRUPT` was looked up by the interrupter's
+  GUID instead of the caster's. Found by the new headless test harness
+  (`tests/`), which loads the whole addon under a stubbed WoW API and drives
+  a full fake session per class.
 
 ## v0.5.0 — Vigil Parse, phase 1 (the collector)
 The data layer begins: "the utility parse Warcraft Logs forgot," starting with

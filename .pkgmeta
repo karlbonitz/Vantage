@@ -16,6 +16,7 @@ manual-changelog:
   markup-type: markdown
 
 ignore:
+  - tests
   - README.md
   - LISTING.md
   - docs

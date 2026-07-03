@@ -2,3 +2,6 @@
 *.zip
 .DS_Store
 Thumbs.db
+
+# packager local dry-run output
+.release/
