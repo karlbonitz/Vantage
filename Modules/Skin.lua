@@ -55,14 +55,30 @@ local function classColor(unit)
     if c then return c.r, c.g, c.b end
 end
 
-local function applyBarColor(uf)
+-- What color should this bar be RIGHT NOW?
+--   class color (players) > group aggro scheme (NPCs in combat) > reaction.
+-- The aggro scheme makes the BAR ITSELF answer "whose problem is this?" in
+-- a group: alarm red = it's coming for you, calm brick = the tank has it,
+-- green (tank mode) = safely on you. Solo and out of combat, bars keep
+-- normal reaction colors — solo, aggro information is a tautology.
+local function desiredBarColor(uf)
     local unit = unitOf(uf)
+    if not unit or not UnitExists(unit) then return nil end
     local r, g, b = classColor(unit)
-    if not r and unit and UnitExists(unit) and UnitSelectionColor then
-        -- not class-colored (NPC, or the option is off): re-assert reaction
-        -- color so toggling class colors off reverts live
-        r, g, b = UnitSelectionColor(unit)
+    if r then return r, g, b end
+    if Vigil.db.threat and IsInGroup() and not UnitIsPlayer(unit)
+        and UnitCanAttack("player", unit) and UnitAffectingCombat(unit) then
+        local tkey = uf.__vigilThreat
+        if tkey == "threatBad" then return Vigil:RGB("aggroAlarm") end
+        if tkey == "threatOK" then return Vigil:RGB("aggroSafe") end
+        return Vigil:RGB("aggroCalm")
     end
+    if UnitSelectionColor then return UnitSelectionColor(unit) end
+    return nil
+end
+
+local function applyBarColor(uf)
+    local r, g, b = desiredBarColor(uf)
     if r then
         applying = true
         uf.healthBar:SetStatusBarColor(r, g, b)
@@ -351,9 +367,11 @@ local function build(uf)
     end)
 
     -- keep class colors in place when Blizzard re-asserts reaction color
+    -- when Blizzard re-asserts its own coloring, put OUR desired color back
+    -- (class colors, or the group aggro scheme)
     hooksecurefunc(hb, "SetStatusBarColor", function(bar, r, g, b)
         if applying or not active() then return end
-        local cr, cg, cb = classColor(unitOf(uf))
+        local cr, cg, cb = desiredBarColor(uf)
         if cr and (r ~= cr or g ~= cg or b ~= cb) then
             applying = true
             bar:SetStatusBarColor(cr, cg, cb)
@@ -422,6 +440,9 @@ function M:SetThreat(unit, key)
         uf.__vigilThreat = key
         updateHighlight(uf)
     end
+    -- bar color re-checks every push, not just on key change: combat
+    -- engagement flips calm<->reaction without the threat key moving
+    applyBarColor(uf)
 end
 
 local function applySkin(uf, unit)

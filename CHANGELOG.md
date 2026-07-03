@@ -12,10 +12,14 @@ purely additive decoration on Blizzard's plates (no taint, no replacement).
   overlays, DoT rows — fades to 50% opacity (tunable via the "Non-target
   fade" slider), so the selected enemy is unmistakable. One exception, by
   design: a live INTERRUPT cue never fades, even on a non-target.
-- **Aggro borders**: the plate border now speaks threat — red when a mob is
-  on you (or you're about to pull), and in tank mode green = safely tanking,
-  red = losing the mob. Your target's accent border always wins. Governed by
-  the existing Threat tint toggle; the strip stays too.
+- **Aggro coloring, done right** (after real-dungeon iteration): in a group,
+  the health bar itself answers "whose problem is this mob?" — **bright red**
+  = it's coming for YOU, **calm brick** = the tank has it; tank mode flips
+  (green = safely yours, red = it got away). Out of combat and solo, bars
+  keep normal reaction colors. The state comes from the mob's ACTUAL target
+  (`unit.."target"` — ground truth), never from the 2.5.x threat table,
+  which returned "you have aggro" for everything in a live 5-man. Border and
+  strip follow the same state; your target's accent border always wins.
 - **Mouseover wash**: the plate under your cursor lights up softly.
 - **Execute mark**: a quiet tick at 20% health that lights up red — along
   with the HP text — once the mob is in execute range. Every class knows the

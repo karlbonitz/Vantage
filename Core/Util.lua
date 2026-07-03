@@ -37,6 +37,10 @@ Vigil.colors = {
     threatOK  = { 0.20, 0.80, 0.25 }, -- you are securely tanking (tank mode)
     threatWarn= { 0.95, 0.75, 0.10 }, -- climbing / near pull
     threatBad = { 0.90, 0.20, 0.20 }, -- you pulled aggro / tank lost it
+    -- group aggro BAR colors (the Plater-style "whose problem is this?" scheme)
+    aggroAlarm= { 1.00, 0.25, 0.15 }, -- it's coming for YOU (dps) / you lost it (tank)
+    aggroCalm = { 0.50, 0.33, 0.28 }, -- someone else's problem (calm brick)
+    aggroSafe = { 0.28, 0.72, 0.35 }, -- tank mode: safely on you
 }
 
 -- Accent themes: the "go" color worn by the cue glow, the INTERRUPT label,

@@ -332,7 +332,7 @@ function UnitPowerType(t) local u = U(t); return u and u.powerType or 0, "MANA" 
 function UnitPower(t) return 50 end
 function UnitPowerMax(t) local u = U(t); return u and u.powerMax or 100 end
 function UnitIsFriend(_, t) local u = U(t); return u and not u.hostile end
-function UnitAffectingCombat() return false end
+function UnitAffectingCombat(t) local u = U(t); return (u and u.inCombat) or false end
 function UnitIsTapDenied() return false end
 
 -- threat: driven by unit.threat = {isTanking, status, pct} (nil = no table)

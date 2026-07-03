@@ -206,9 +206,12 @@ ok(b2.__vr == 0 and b2.__vg == 0, "solo: no aggro border even when targeted")
 
 -- GROUPED: mob targeting me -> red border (ground truth, no threat table)
 H.inGroup = true
+H.units.nameplate2.inCombat = true
 H.FireEvent("UNIT_THREAT_LIST_UPDATE")
 H.Advance(0.3)
 ok(b2.__vr and b2.__vr > 0.8 and b2.__vg < 0.4, "grouped: mob on ME -> red border")
+local bc = uf2.healthBar.__barcolor
+ok(bc and bc[1] == 1 and bc[2] < 0.4, "grouped: mob on ME -> alarm-red BAR")
 
 -- the TARGET keeps its accent border even when it's on me
 H.alias.nameplate1target = "player"
@@ -222,6 +225,13 @@ H.alias.nameplate2target = nil
 H.FireEvent("UNIT_THREAT_LIST_UPDATE")
 H.Advance(0.3)
 ok(b2.__vr == 0 and b2.__vg == 0, "border clears when the mob leaves you")
+bc = uf2.healthBar.__barcolor
+ok(bc and bc[1] < 0.6 and bc[1] > 0.4, "tank's mob -> calm brick BAR")
+H.units.nameplate2.inCombat = false
+H.FireEvent("UNIT_THREAT_LIST_UPDATE")
+H.Advance(0.3)
+bc = uf2.healthBar.__barcolor
+ok(bc and bc[1] == 1 and bc[2] < 0.3, "out of combat -> reaction color returns")
 
 H.inGroup = false
 H.FireEvent("UNIT_THREAT_LIST_UPDATE")
