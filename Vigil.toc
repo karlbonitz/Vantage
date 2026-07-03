@@ -1,0 +1,33 @@
+## Interface: 20504, 20505
+## Title: Vigil
+## Notes: Interrupt-smart nameplates — know exactly when to kick, and when not to waste it.
+## Author: karlbonitz
+## Version: 0.5.0
+## SavedVariables: VigilDB, VigilParseDB
+## X-Category: Combat
+## X-Website: https://github.com/karlbonitz/Vigil
+## X-License: MIT
+# Uncomment + fill these once the CurseForge / Wago project pages exist, so the
+# packager Action can upload to them (with CF_API_KEY / WAGO_API_KEY secrets set):
+# ## X-Curse-Project-ID: 000000
+# ## X-Wago-ID: xxxxxxxx
+
+# --- Core (load first; defines the namespace, event bus, DB, slash commands) ---
+Core\Util.lua
+Core\Core.lua
+
+# --- Data (the seed "Intel Pack": which casts to kick, and your interrupts) ---
+Data\KickableSpells.lua
+Data\Immunities.lua
+Data\InterruptSpells.lua
+
+# --- Modules (each registers itself with Core and enables on PLAYER_LOGIN) ---
+Modules\Nameplates.lua
+Modules\Skin.lua
+Modules\CastWatch.lua
+Modules\InterruptCue.lua
+Modules\Threat.lua
+Modules\Auras.lua
+Modules\Parse.lua
+Modules\ParseExport.lua
+Modules\Options.lua

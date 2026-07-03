@@ -1,0 +1,31 @@
+# Packages Vigil and publishes it when a version tag (v*) is pushed.
+#
+# Release flow: bump Version in Vigil.toc + Vigil.version in Core/Util.lua,
+# write the CHANGELOG entry, commit, then `git tag vX.Y.Z && git push --tags`.
+#
+# Secrets (repo Settings -> Secrets and variables -> Actions):
+#   CF_API_KEY    - enables the CurseForge upload (needs X-Curse-Project-ID in the TOC)
+#   WAGO_API_KEY  - enables the Wago upload (needs X-Wago-ID in the TOC)
+# Without them the run still builds the zip and attaches it to a GitHub release.
+name: Package and release
+
+on:
+  push:
+    tags: ["v*"]
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: BigWigsMods/packager@v2
+        env:
+          CF_API_KEY: ${{ secrets.CF_API_KEY }}
+          WAGO_API_KEY: ${{ secrets.WAGO_API_KEY }}
+          GITHUB_OAUTH: ${{ secrets.GITHUB_TOKEN }}

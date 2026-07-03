@@ -1,0 +1,31 @@
+# .pkgmeta — config for the BigWigs packager GitHub Action.
+# Publishes Vigil to CurseForge / Wago / WoWInterface from one git tag.
+# Docs: https://github.com/BigWigsMods/packager
+#
+# v0.1 has NO library dependencies (it's intentionally dependency-free), so the
+# externals list is empty. When we adopt Ace3 + LibDeflate in v0.3, add them here
+# and they'll be embedded into Libs/ automatically at build time.
+
+package-as: Vigil
+
+enable-nolib-creation: no
+
+# CHANGELOG.md ships in the zip AND becomes the CurseForge/Wago upload changelog.
+manual-changelog:
+  filename: CHANGELOG.md
+  markup-type: markdown
+
+ignore:
+  - README.md
+  - LISTING.md
+  - docs
+  - .github
+
+# externals:
+#   Libs/LibStub: https://repos.curseforge.com/wow/libstub/trunk
+#   Libs/CallbackHandler-1.0: https://repos.curseforge.com/wow/callbackhandler/trunk/CallbackHandler-1.0
+#   Libs/Ace3:
+#     url: https://repos.curseforge.com/wow/ace3/trunk
+#     path: Ace3
+#   Libs/LibDeflate: https://github.com/SafeteeWoW/LibDeflate
+#   Libs/LibThreatClassic2: https://github.com/Nevcairiel/LibThreatClassic2  # verify source before use

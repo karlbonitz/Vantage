@@ -1,0 +1,476 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Vigil Parse</title>
+</head>
+<body>
+<!-- VIGIL:FRAGMENT-START -->
+<style>
+  /* Vigil Parse — committed single-theme dark page (matches the in-game addon identity). */
+  :root {
+    --bg:      #0e1013;
+    --panel:   #14171c;
+    --panel-2: #191d24;
+    --line:    #262b34;
+    --ink:     #e8eaf0;
+    --ink-2:   #9aa3b2;
+    --ink-3:   #626b79;
+    --gold:    #ffd11a;
+    --gold-dim:#b99a1f;
+    /* status data colors — validated (dataviz six checks, dark surface #14171c) */
+    --good:    #2fa385;
+    --crit:    #e25b4e;
+    --neut:    #7386c8;
+    --serif: "Palatino Linotype", Palatino, "Book Antiqua", Georgia, serif;
+    --sans: system-ui, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    --mono: ui-monospace, "Cascadia Mono", "SF Mono", Menlo, Consolas, monospace;
+  }
+  html { background: var(--bg); }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--ink);
+    font: 15px/1.55 var(--sans);
+    border-top: 3px solid var(--gold);
+    -webkit-text-size-adjust: 100%;
+  }
+  .wrap { max-width: 1080px; margin: 0 auto; padding: 28px 20px 64px; }
+
+  /* ---- header ---------------------------------------------------------- */
+  header.masthead { display: flex; align-items: baseline; gap: 14px; flex-wrap: wrap; margin-bottom: 6px; }
+  .wordmark { font-family: var(--serif); font-size: 30px; letter-spacing: .14em; margin: 0; font-weight: 600; }
+  .wordmark .v { color: var(--gold); }
+  .wordmark .p { color: var(--ink); font-weight: 400; }
+  .tagline { color: var(--ink-2); font-size: 14px; }
+  .privacy { color: var(--ink-3); font-size: 12.5px; margin: 2px 0 26px; }
+  .privacy strong { color: var(--ink-2); font-weight: 600; }
+
+  /* ---- panels & sections ------------------------------------------------ */
+  .panel { background: var(--panel); border: 1px solid var(--line); border-radius: 8px; }
+  h2.sect {
+    font-family: var(--serif); font-weight: 600; color: var(--gold);
+    font-size: 15px; letter-spacing: .12em; text-transform: uppercase;
+    margin: 36px 0 12px; padding-bottom: 7px; border-bottom: 1px solid var(--line);
+    display: flex; align-items: baseline; gap: 10px;
+  }
+  h2.sect .sub { font-family: var(--sans); text-transform: none; letter-spacing: 0; color: var(--ink-3); font-size: 12.5px; font-weight: 400; }
+
+  /* ---- import (hero when empty) ----------------------------------------- */
+  #importPanel { padding: 22px; }
+  .steps { display: flex; gap: 22px; flex-wrap: wrap; margin: 0 0 18px; padding: 0; list-style: none; counter-reset: step; }
+  .steps li { counter-increment: step; flex: 1 1 220px; color: var(--ink-2); font-size: 13.5px; display: flex; gap: 10px; align-items: flex-start; }
+  .steps li::before {
+    content: counter(step); flex: none;
+    width: 22px; height: 22px; border-radius: 50%; border: 1px solid var(--gold-dim);
+    color: var(--gold); font: 600 12px/22px var(--mono); text-align: center;
+  }
+  .steps code { font-family: var(--mono); font-size: 12.5px; color: var(--gold); background: var(--panel-2); border: 1px solid var(--line); border-radius: 4px; padding: 1px 5px; white-space: nowrap; }
+  .steps kbd { font-family: var(--mono); font-size: 12px; color: var(--ink); background: var(--panel-2); border: 1px solid var(--line); border-bottom-width: 2px; border-radius: 4px; padding: 0 5px; }
+  textarea#pasteBox {
+    width: 100%; box-sizing: border-box; min-height: 132px; resize: vertical;
+    background: var(--bg); color: var(--ink-2); border: 1px solid var(--line); border-radius: 6px;
+    font: 12px/1.5 var(--mono); padding: 10px 12px;
+  }
+  textarea#pasteBox:focus-visible, button:focus-visible, select:focus-visible, a:focus-visible {
+    outline: 2px solid var(--gold); outline-offset: 2px;
+  }
+  .importRow { display: flex; gap: 12px; align-items: center; margin-top: 12px; flex-wrap: wrap; }
+  button.primary {
+    font: 600 14px var(--sans); color: #14130a; background: var(--gold);
+    border: 0; border-radius: 6px; padding: 9px 22px; cursor: pointer;
+  }
+  button.primary:hover { background: #ffe15c; }
+  button.ghost, a.ghost {
+    font: 500 13.5px var(--sans); color: var(--ink-2); background: none;
+    border: 1px solid var(--line); border-radius: 6px; padding: 8px 16px; cursor: pointer; text-decoration: none;
+  }
+  button.ghost:hover, a.ghost:hover { color: var(--ink); border-color: var(--ink-3); }
+  #importError { display: none; margin-top: 12px; padding: 10px 14px; border: 1px solid #6b3430; border-radius: 6px; background: #241417; color: #f0a49c; font-size: 13.5px; }
+  #importMeta { display: none; align-items: center; gap: 14px; flex-wrap: wrap; padding: 12px 18px; }
+  #importMeta .m { color: var(--ink-2); font-size: 13.5px; }
+  #importMeta .m b { color: var(--ink); font-weight: 600; }
+
+  /* ---- filter row -------------------------------------------------------- */
+  #filterRow { display: none; align-items: center; gap: 10px; margin: 26px 0 0; }
+  #filterRow label { color: var(--ink-3); font-size: 12px; letter-spacing: .08em; text-transform: uppercase; }
+  select#sessionSel {
+    background: var(--panel); color: var(--ink); border: 1px solid var(--line); border-radius: 6px;
+    font: 13.5px var(--sans); padding: 7px 10px; max-width: 100%;
+  }
+
+  /* ---- stat tiles --------------------------------------------------------- */
+  #tiles { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; margin-top: 14px; }
+  .tile { padding: 14px 16px 12px; display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+  .tile .lbl { font-size: 12px; letter-spacing: .07em; text-transform: uppercase; color: var(--ink-3); display: flex; align-items: center; gap: 7px; }
+  .tile .lbl .dot { width: 8px; height: 8px; border-radius: 50%; flex: none; }
+  .tile .val { font-size: 27px; font-weight: 650; line-height: 1.15; margin-top: 3px; }
+  .tile .sub { font-size: 12.5px; color: var(--ink-2); }
+  .tile.hero { grid-column: span 2; grid-row: span 1; border-color: #4a2f2c; background: linear-gradient(180deg, #1a1518, var(--panel)); }
+  .tile.hero .val { font-size: 52px; color: var(--crit); font-weight: 700; }
+  .tile.hero .lbl { color: #cf8d85; }
+  @media (max-width: 760px) { #tiles { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+
+  /* ---- tables -------------------------------------------------------------- */
+  .tblWrap { overflow-x: auto; }
+  table { border-collapse: collapse; width: 100%; font-size: 13.5px; }
+  th { text-align: left; font-size: 11.5px; letter-spacing: .08em; text-transform: uppercase; color: var(--ink-3); font-weight: 600; padding: 9px 12px; border-bottom: 1px solid var(--line); white-space: nowrap; }
+  td { padding: 8px 12px; border-bottom: 1px solid #1c2027; vertical-align: middle; }
+  tr:last-child td { border-bottom: 0; }
+  tbody tr:hover td { background: var(--panel-2); }
+  td.num, th.num { text-align: right; font-family: var(--mono); font-variant-numeric: tabular-nums; font-size: 13px; }
+  td.spell { font-weight: 600; white-space: nowrap; }
+  td.dim, .dim { color: var(--ink-2); }
+  .chip { display: inline-block; font: 600 10.5px var(--sans); letter-spacing: .06em; text-transform: uppercase; color: var(--ink-2); border: 1px solid var(--line); border-radius: 4px; padding: 1px 6px; margin-left: 8px; vertical-align: 1px; }
+  .chip.warn { color: #e0b34c; border-color: #4d4020; }
+  tr.selRow td { background: #1a1c14; }
+
+  /* stacked outcome bar (composition; track length = casts vs max) */
+  td.barCell { min-width: 190px; }
+  .track { width: 100%; max-width: 250px; }
+  .bar { display: flex; gap: 2px; height: 10px; }
+  .seg { min-width: 3px; }
+  .seg.g { background: var(--good); }
+  .seg.c { background: var(--crit); }
+  .seg.n { background: var(--neut); }
+  .bar .seg:last-child { border-radius: 0 3px 3px 0; }
+
+  .legend { display: flex; gap: 18px; flex-wrap: wrap; margin: 2px 0 10px; font-size: 12.5px; color: var(--ink-2); }
+  .legend .key { display: inline-flex; align-items: center; gap: 7px; }
+  .legend .sw { width: 10px; height: 10px; border-radius: 2px; flex: none; }
+
+  .classDot { display: inline-block; width: 9px; height: 9px; border-radius: 50%; margin-right: 7px; vertical-align: 0; }
+
+  footer { margin-top: 44px; color: var(--ink-3); font-size: 12px; border-top: 1px solid var(--line); padding-top: 14px; display: flex; gap: 16px; flex-wrap: wrap; }
+  footer a { color: var(--ink-2); }
+  #report { display: none; }
+  @media (prefers-reduced-motion: no-preference) {
+    #report.on { animation: rise .25s ease-out; }
+    @keyframes rise { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+  }
+</style>
+
+<div class="wrap">
+  <header class="masthead">
+    <h1 class="wordmark"><span class="v">VIGIL</span> <span class="p">PARSE</span></h1>
+    <span class="tagline">The utility parse — interrupt efficiency from your Vigil sessions.</span>
+  </header>
+  <p class="privacy"><strong>Everything decodes in your browser.</strong> Nothing is uploaded anywhere.</p>
+
+  <div class="panel" id="importPanel">
+    <ol class="steps">
+      <li>In game, type <code>/vigil export</code> — a window opens with your session data pre-selected.</li>
+      <li>Press <kbd>Ctrl</kbd>+<kbd>C</kbd> to copy it.</li>
+      <li>Paste it below and hit <b style="color:var(--ink)">Build report</b>.</li>
+    </ol>
+    <textarea id="pasteBox" spellcheck="false" placeholder='{"v":1,"exported":…,"sessions":[…]}'></textarea>
+    <div class="importRow">
+      <button class="primary" id="analyzeBtn">Build report</button>
+      <button class="ghost" id="sampleBtn">Load sample data</button>
+    </div>
+    <div id="importError" role="alert"></div>
+  </div>
+
+  <div class="panel" id="importMeta">
+    <span class="m" id="importMetaText"></span>
+    <button class="ghost" id="newImportBtn">Paste a new export</button>
+  </div>
+
+  <div id="report">
+    <div id="filterRow">
+      <label for="sessionSel">Scope</label>
+      <select id="sessionSel"></select>
+    </div>
+
+    <div id="tiles"></div>
+
+    <h2 class="sect">By spell <span class="sub" id="spellSub"></span></h2>
+    <div class="legend">
+      <span class="key"><span class="sw" style="background:var(--good)"></span>interrupted by you</span>
+      <span class="key"><span class="sw" style="background:var(--crit)"></span>let through while your stop was ready</span>
+      <span class="key"><span class="sw" style="background:var(--neut)"></span>other outcomes (kicked by others, fizzled, no window)</span>
+    </div>
+    <div class="panel tblWrap">
+      <table id="spellTable">
+        <thead><tr>
+          <th>Spell</th><th>Top caster</th>
+          <th class="num">Casts</th><th class="num">Windows</th><th class="num">You kicked</th><th class="num">Let through</th>
+          <th>Outcomes</th>
+        </tr></thead>
+        <tbody></tbody>
+      </table>
+    </div>
+
+    <h2 class="sect">Sessions</h2>
+    <div class="panel tblWrap">
+      <table id="sessionTable">
+        <thead><tr>
+          <th>Started</th><th>Character</th><th>Zone</th>
+          <th class="num">Casts</th><th class="num">Windows</th><th class="num">You kicked</th><th class="num">Let through</th>
+        </tr></thead>
+        <tbody></tbody>
+      </table>
+    </div>
+  </div>
+
+  <footer>
+    <span>Vigil Parse · report v1 · works with Vigil 0.5.0+ exports</span>
+    <span>Your data never leaves this page.</span>
+    <span><a href="https://github.com/karlbonitz/Vigil">Vigil on GitHub</a></span>
+  </footer>
+</div>
+
+<script>
+/* ===== pure data layer (testable without a DOM) ============================ */
+function vpMedian(a) {
+  if (!a.length) return null;
+  const s = [...a].sort((x, y) => x - y), m = s.length >> 1;
+  return s.length % 2 ? s[m] : Math.round((s[m - 1] + s[m]) / 2);
+}
+
+/* Aggregate an array of Vigil Parse sessions (the export's `sessions`) into
+   totals, a by-spell breakdown, and per-session summaries. */
+function vpAggregate(sessions) {
+  const agg = { casts: 0, windows: 0, intMe: 0, intOther: 0, miss: 0, rx: [],
+                kickCasts: 0, myInterrupts: 0, wastedKicks: 0, dropped: 0 };
+  const bySpell = new Map();
+  const perSession = [];
+
+  sessions.forEach((s, i) => {
+    const ps = { i, meta: s.meta || {}, casts: 0, windows: 0, intMe: 0, miss: 0,
+                 dropped: (s.counters && s.counters.dropped) || 0, zones: new Map() };
+    (s.rows || []).forEach(r => {
+      agg.casts++; ps.casts++;
+      // PvP casts of a spell bucket separately — an enemy player's Fear is a
+      // different context than a mob's, and the chip should only cover PvP rows
+      const key = (r.sp || '?').toLowerCase() + (r.pvp ? '|pvp' : '');
+      let b = bySpell.get(key);
+      if (!b) { b = { sp: r.sp || '?', srcs: new Map(), n: 0, win: 0, intMe: 0, intOther: 0, miss: 0, locked: 0, pvp: 0 }; bySpell.set(key, b); }
+      b.n++;
+      if (r.src) b.srcs.set(r.src, (b.srcs.get(r.src) || 0) + 1);
+      if (r.z) ps.zones.set(r.z, (ps.zones.get(r.z) || 0) + 1);
+      if (r.win) { agg.windows++; ps.windows++; b.win++; }
+      if (r.tier === 'locked') b.locked++;
+      if (r.pvp) b.pvp++;
+      if (r.out === 'int') {
+        if (r.by === 'me') { agg.intMe++; ps.intMe++; b.intMe++; if (r.rx != null) agg.rx.push(r.rx); }
+        else { agg.intOther++; b.intOther++; }
+      }
+      if (r.miss) { agg.miss++; ps.miss++; b.miss++; }
+    });
+    const c = s.counters || {};
+    agg.kickCasts += c.kickCasts || 0; agg.myInterrupts += c.myInterrupts || 0;
+    agg.wastedKicks += c.wastedKicks || 0; agg.dropped += c.dropped || 0;
+    let topZ = '', topN = 0;
+    ps.zones.forEach((n, z) => { if (n > topN) { topN = n; topZ = z; } });
+    ps.zone = topZ;
+    perSession.push(ps);
+  });
+
+  const spells = [...bySpell.values()].map(b => {
+    let topSrc = '', topN = 0;
+    b.srcs.forEach((n, src) => { if (n > topN) { topN = n; topSrc = src; } });
+    return { sp: b.sp, src: topSrc, n: b.n, win: b.win, intMe: b.intMe, intOther: b.intOther,
+             miss: b.miss, rest: b.n - b.intMe - b.miss,
+             locked: b.locked >= b.n / 2, pvp: b.pvp > 0 };
+  }).sort((a, b) => (b.miss - a.miss) || (b.n - a.n));
+
+  return { agg, spells, perSession, medianRx: vpMedian(agg.rx), rxN: agg.rx.length };
+}
+
+/* Validate + normalize a pasted export. Throws with a user-facing message. */
+function vpDecode(text) {
+  let p;
+  try { p = JSON.parse(text.trim()); }
+  catch (e) { throw new Error("That doesn't parse as Vigil export data. In game, open /vigil export and copy the WHOLE text (it's pre-selected — just Ctrl+C), then paste it here."); }
+  if (!p || !Array.isArray(p.sessions)) throw new Error("That's valid JSON but not a Vigil export — expected a top-level \"sessions\" list from /vigil export.");
+  if (p.v !== 1) console.warn('Vigil Parse: unknown export version', p.v, '— attempting to read anyway.');
+  return p;
+}
+
+/* ===== sample data (deterministic, spans classes — not Priest-centric) ==== */
+function vpSample() {
+  // spec: [spell, caster, zone, casts, windows, intMe(with rx spread), intOther, miss, lockedAll, wk]
+  function expand(meta, start, zone, specs) {
+    const rows = []; let t = start;
+    const counters = { kickCasts: 0, myInterrupts: 0, wastedKicks: 0, dropped: 0 };
+    specs.forEach(sp => {
+      const [name, src, n, win, intMe, intOther, miss, locked, wk, rxBase] = sp;
+      for (let i = 0; i < n; i++) {
+        t += 41 + ((i * 37) % 53);
+        const r = { t, z: zone, src, sp: name, sid: 10000 + ((name.length * 131 + i) % 3000) };
+        if (sp[10]) r.pvp = true;
+        if (locked) {
+          r.tier = 'locked'; r.out = 'done';
+          if (i < wk) { r.wk = true; counters.wastedKicks++; counters.kickCasts++; }
+        } else if (i < intMe) {
+          r.tier = 'ready'; r.win = true; r.out = 'int'; r.by = 'me';
+          r.rx = rxBase + ((i * 173) % 620);
+          counters.kickCasts++; counters.myInterrupts++;
+        } else if (i < intMe + miss) {
+          r.tier = 'ready'; r.win = true; r.out = 'done'; r.miss = true;
+        } else if (i < intMe + miss + intOther) {
+          r.tier = 'cd'; r.out = 'int'; r.by = 'other';
+        } else if (i < win + intOther + (locked ? 0 : 0)) {
+          r.tier = 'ready'; r.win = true; r.out = 'stop';
+        } else {
+          r.tier = 'cd'; r.out = (i % 3 === 0) ? 'stop' : 'done';
+        }
+        rows.push(r);
+      }
+    });
+    return { meta, counters, rows };
+  }
+  const s1 = expand(
+    { player: 'Korgha', realm: 'Dreamscythe', class: 'SHAMAN', addon: '0.5.0', start: 1782702000 },
+    1782702200, 'Shadow Labyrinth', [
+      ['Greater Heal', 'Cabal Acolyte',      18, 13, 9, 2, 3, false, 0, 340],
+      ['Shadow Bolt',  'Cabal Zealot',       11,  8, 5, 1, 2, false, 0, 410],
+      ['Fear',         'Cabal Deathsworn',    6,  4, 3, 0, 1, false, 0, 520],
+      ['Murmur’s Touch', 'Murmur',       5,  0, 0, 0, 0, true,  2, 0],
+    ]);
+  const s2 = expand(
+    { player: 'Vexa', realm: 'Dreamscythe', class: 'MAGE', addon: '0.5.0', start: 1782874800 },
+    1782875000, 'The Mechanar', [
+      ['Scorch',          'Sunseeker Astromage', 13, 10, 8, 0, 2, false, 0, 280],
+      ['Heal',            'Sunseeker Engineer',   7,  5, 4, 1, 1, false, 0, 300],
+      ['Arcane Missiles', 'Sunseeker Astromage',  6,  3, 2, 1, 1, false, 0, 350],
+      ['Flame Strike',    'Nethermancer Sepethrea', 4, 0, 0, 0, 0, true, 1, 0],
+      ['Fear',            'Deathwhisper',         3,  3, 2, 0, 1, false, 0, 460, true], // enemy Warlock (PvP)
+    ]);
+  return { v: 1, exported: 1782882000, sessions: [s1, s2] };
+}
+
+if (typeof module !== 'undefined') module.exports = { vpAggregate, vpDecode, vpMedian, vpSample };
+</script>
+
+<script>
+/* ===== rendering ========================================================== */
+(function () {
+  const $ = s => document.querySelector(s);
+  const esc = s => String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+  const num = n => n.toLocaleString('en-US');
+  const CLASS_COLORS = { WARRIOR: '#C69B6D', PALADIN: '#F48CBA', HUNTER: '#AAD372', ROGUE: '#FFF468', PRIEST: '#FFFFFF', SHAMAN: '#0070DE', MAGE: '#3FC7EB', WARLOCK: '#8788EE', DRUID: '#FF7C0A' };
+  const fmtDate = t => t ? new Date(t * 1000).toLocaleString(undefined, { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' }) : '—';
+
+  let payload = null;   // decoded export
+  let scope = -1;       // -1 = all sessions, else index
+
+  function tile(label, value, sub, dot, hero) {
+    return '<div class="panel tile' + (hero ? ' hero' : '') + '">' +
+      '<span class="lbl">' + (dot ? '<span class="dot" style="background:' + dot + '"></span>' : '') + esc(label) + '</span>' +
+      '<span class="val">' + value + '</span>' +
+      (sub ? '<span class="sub">' + sub + '</span>' : '') + '</div>';
+  }
+
+  function render() {
+    const sessions = scope === -1 ? payload.sessions : [payload.sessions[scope]];
+    const { agg, spells, perSession, medianRx, rxN } = vpAggregate(sessions);
+
+    // --- tiles (hero first: the stat WCL can't show) ---
+    const conv = agg.windows ? Math.round(100 * agg.intMe / agg.windows) : null;
+    $('#tiles').innerHTML =
+      tile('Let through while ready', num(agg.miss),
+           'casts that completed while your stop was off cooldown', null, true) +
+      tile('Enemy casts logged', num(agg.casts),
+           (scope === -1 ? 'across ' + payload.sessions.length + ' session' + (payload.sessions.length === 1 ? '' : 's') : 'this session')
+           + (agg.dropped ? ' · <b style="color:#e0b34c">' + num(agg.dropped) + ' dropped (log full)</b>' : '')) +
+      tile('Kick windows shown', num(agg.windows), 'casts flagged while a stop of yours was ready') +
+      tile('Interrupted by you', num(agg.intMe),
+           agg.intOther ? '+' + num(agg.intOther) + ' by others' : 'of ' + num(agg.kickCasts) + ' kick casts', 'var(--good)') +
+      tile('Windows converted', conv !== null ? conv + '<span style="font-size:15px;color:var(--ink-2)"> %</span>' : '—',
+           'of flagged casts, you got the stop off') +
+      tile('Median reaction', medianRx !== null ? num(medianRx) + '<span style="font-size:15px;color:var(--ink-2)"> ms</span>' : '—',
+           rxN ? 'cue → your interrupt, over ' + num(rxN) : 'no timed kicks yet') +
+      tile('Wasted kicks', num(agg.wastedKicks),
+           'spent on uninterruptible casts');
+
+    // --- by-spell table ---
+    const maxN = Math.max(1, ...spells.map(s => s.n));
+    $('#spellSub').textContent = spells.length + ' spell' + (spells.length === 1 ? '' : 's') + ', sorted by let-through';
+    $('#spellTable tbody').innerHTML = spells.map(s => {
+      const segs =
+        (s.intMe ? '<div class="seg g" style="flex-grow:' + s.intMe + '" title="Interrupted by you — ' + num(s.intMe) + '"></div>' : '') +
+        (s.miss ? '<div class="seg c" style="flex-grow:' + s.miss + '" title="Let through while ready — ' + num(s.miss) + '"></div>' : '') +
+        (s.rest ? '<div class="seg n" style="flex-grow:' + s.rest + '" title="Other outcomes — ' + num(s.rest) + '"></div>' : '');
+      return '<tr>' +
+        '<td class="spell">' + esc(s.sp) +
+          (s.locked ? '<span class="chip">do not kick</span>' : '') +
+          (s.pvp ? '<span class="chip">pvp</span>' : '') + '</td>' +
+        '<td class="dim">' + esc(s.src || '—') + '</td>' +
+        '<td class="num">' + num(s.n) + '</td>' +
+        '<td class="num">' + num(s.win) + '</td>' +
+        '<td class="num">' + num(s.intMe) + '</td>' +
+        '<td class="num">' + num(s.miss) + '</td>' +
+        '<td class="barCell"><div class="track"><div class="bar" style="width:' + Math.round(100 * s.n / maxN) + '%">' + segs + '</div></div></td>' +
+        '</tr>';
+    }).join('');
+
+    // --- sessions table (always all sessions; scope row highlighted) ---
+    const all = vpAggregate(payload.sessions).perSession;
+    $('#sessionTable tbody').innerHTML = all.map(ps => {
+      const cls = (ps.meta.class || '').toUpperCase();
+      const dot = CLASS_COLORS[cls] || 'var(--ink-3)';
+      return '<tr' + (scope === ps.i ? ' class="selRow"' : '') + '>' +
+        '<td class="dim">' + fmtDate(ps.meta.start) + '</td>' +
+        '<td><span class="classDot" style="background:' + dot + '"></span>' + esc(ps.meta.player || '?') +
+          '<span class="dim"> — ' + esc(ps.meta.realm || '') + '</span>' +
+          (ps.dropped ? '<span class="chip warn">log filled</span>' : '') + '</td>' +
+        '<td class="dim">' + esc(ps.zone || '—') + '</td>' +
+        '<td class="num">' + num(ps.casts) + '</td>' +
+        '<td class="num">' + num(ps.windows) + '</td>' +
+        '<td class="num">' + num(ps.intMe) + '</td>' +
+        '<td class="num">' + num(ps.miss) + '</td>' +
+        '</tr>';
+    }).join('');
+
+    $('#report').style.display = 'block';
+    $('#report').classList.add('on');
+  }
+
+  function buildScopeSelect() {
+    const sel = $('#sessionSel');
+    sel.innerHTML = '<option value="-1">All sessions (' + payload.sessions.length + ')</option>' +
+      payload.sessions.map((s, i) => {
+        const m = s.meta || {};
+        return '<option value="' + i + '">' + esc(fmtDate(m.start) + ' — ' + (m.player || '?')) + '</option>';
+      }).join('');
+    sel.value = String(scope);
+    $('#filterRow').style.display = payload.sessions.length > 1 ? 'flex' : 'none';
+  }
+
+  function load(p) {
+    payload = p; scope = -1;
+    const rows = p.sessions.reduce((n, s) => n + ((s.rows && s.rows.length) || 0), 0);
+    $('#importError').style.display = 'none';
+    $('#importPanel').style.display = 'none';
+    $('#importMeta').style.display = 'flex';
+    $('#importMetaText').innerHTML = 'Loaded <b>' + num(rows) + ' casts</b> from <b>' +
+      p.sessions.length + ' session' + (p.sessions.length === 1 ? '' : 's') + '</b>' +
+      (p.exported ? ' · exported ' + esc(fmtDate(p.exported)) : '');
+    buildScopeSelect();
+    render();
+  }
+
+  $('#analyzeBtn').addEventListener('click', () => {
+    try { load(vpDecode($('#pasteBox').value)); }
+    catch (e) {
+      const el = $('#importError');
+      el.textContent = e.message;
+      el.style.display = 'block';
+    }
+  });
+  $('#sampleBtn').addEventListener('click', () => { $('#pasteBox').value = JSON.stringify(vpSample()); load(vpSample()); });
+  $('#newImportBtn').addEventListener('click', () => {
+    $('#importMeta').style.display = 'none';
+    $('#importPanel').style.display = 'block';
+    $('#pasteBox').value = '';
+    $('#pasteBox').focus();
+  });
+  $('#sessionSel').addEventListener('change', e => { scope = parseInt(e.target.value, 10); render(); });
+})();
+</script>
+<!-- VIGIL:FRAGMENT-END -->
+</body>
+</html>

@@ -1,0 +1,307 @@
+-- Vigil/Modules/Nameplates.lua
+--
+-- Tracks enemy nameplates and owns the per-plate "overlay" (our own frames that
+-- ride on top of Blizzard's plate). We NEVER reparent, move, or touch the secure
+-- nameplate frame itself — our overlay is parented to UIParent and merely
+-- anchored to the plate, so it follows the plate's movement with zero taint risk.
+--
+-- The overlay frame stays shown while its plate exists (so the threat strip can
+-- render between casts); the cast-bar elements show/hide per cast.
+local addonName, Vigil = ...
+local M = Vigil:NewModule("Nameplates")
+
+Vigil.plates     = {}  -- unit token ("nameplate3") -> overlay
+Vigil.guidToUnit = {}  -- GUID -> unit token (so CLEU can find the right plate)
+
+local pool = {}        -- recycled overlays
+
+local BAR_W, BAR_H = 124, 12
+local POP_TIME = 0.15  -- seconds for the kick label's pop-in shrink
+
+-- ---------------------------------------------------------------------------
+-- Overlay construction
+-- ---------------------------------------------------------------------------
+local castOnUpdate = function(cb)
+    local o = cb.overlay
+    local remaining = cb.endTime - GetTime()
+    if cb.channeling then
+        cb:SetValue(remaining > 0 and (remaining / cb.duration) or 0)
+    else
+        local filled = cb.duration > 0 and (1 - remaining / cb.duration) or 1
+        cb:SetValue(filled < 1 and filled or 1)
+    end
+    cb.spark:SetPoint("CENTER", cb, "LEFT", cb:GetValue() * cb:GetWidth(), 0)
+    if Vigil.db.showCastTime and remaining > 0 and not o.padlock:IsShown() then
+        o.timeText:SetFormattedText("%.1f", remaining)
+    else
+        o.timeText:SetText("")
+    end
+    if remaining <= 0 then
+        o:Reset()
+    end
+end
+
+local kickPop = function(kf, elapsed)
+    kf.t = kf.t + elapsed
+    local p = kf.t / POP_TIME
+    if p >= 1 then
+        kf:SetScale(1)
+        kf:SetScript("OnUpdate", nil)
+    else
+        kf:SetScale(1.4 - 0.4 * p)
+    end
+end
+
+-- The call-to-action sits CENTERED ON THE HEALTH BAR — the visual center of
+-- the plate, where nothing else lives (aura row is above, mana/cast bar are
+-- below). Covering the HP text for the moment you're deciding to kick is the
+-- point: the label IS the information right then. Falls back to hovering
+-- above the cast bar if the plate has no reachable health bar.
+local function anchorKick(o, hb)
+    local kf = o.kickF
+    kf:ClearAllPoints()
+    if hb then
+        kf:SetPoint("CENTER", hb, "CENTER", 0, 0)
+    else
+        kf:SetPoint("BOTTOM", o, "TOP", 0, 12)
+    end
+end
+
+local function CreateOverlay()
+    local f = CreateFrame("Frame", nil, UIParent)
+    f:SetSize(BAR_W, BAR_H)
+    f:SetFrameStrata("HIGH")
+    f:Hide()
+
+    local base = f:GetFrameLevel()
+
+    -- spell icon in its own bordered square, hanging off the bar's left edge.
+    -- Sized to match the bar + its 1px border exactly (BAR_H + 2).
+    local iconF = CreateFrame("Frame", nil, f)
+    iconF:SetFrameLevel(base + 3)
+    iconF:SetSize(BAR_H + 2, BAR_H + 2)
+    iconF:SetPoint("RIGHT", f, "LEFT", -3, 0)
+    local iconBG = iconF:CreateTexture(nil, "BACKGROUND")
+    iconBG:SetAllPoints(iconF)
+    iconBG:SetColorTexture(0, 0, 0, 0.95)
+    local icon = iconF:CreateTexture(nil, "ARTWORK")
+    icon:SetPoint("TOPLEFT", 1, -1)
+    icon:SetPoint("BOTTOMRIGHT", -1, 1)
+    icon:SetTexCoord(0.08, 0.92, 0.08, 0.92)
+    iconF:Hide()
+    f.iconF, f.icon = iconF, icon
+
+    -- soft radial glow haloing the whole cast row (the "INTERRUPT" pulse).
+    -- A Frame (not a Texture) so it can own an AnimationGroup.
+    local glow = CreateFrame("Frame", nil, f)
+    glow:SetFrameLevel(base + 1)
+    glow:SetPoint("TOPLEFT", iconF, "TOPLEFT", -12, 10)
+    glow:SetPoint("BOTTOMRIGHT", f, "BOTTOMRIGHT", 12, -10)
+    local gtex = glow:CreateTexture(nil, "BACKGROUND")
+    gtex:SetAllPoints(glow)
+    gtex:SetTexture(Vigil.GLOW)
+    gtex:SetBlendMode("ADD")
+    gtex:SetVertexColor(Vigil:RGB("kick"))
+    glow:Hide()
+    local ag = glow:CreateAnimationGroup()
+    local a = ag:CreateAnimation("Alpha")
+    a:SetFromAlpha(1.0); a:SetToAlpha(0.25); a:SetDuration(0.5); a:SetSmoothing("IN_OUT")
+    ag:SetLooping("BOUNCE")
+    f.glow, f.glowAnim = glow, ag
+
+    -- cast bar
+    local cb = CreateFrame("StatusBar", nil, f)
+    cb:SetAllPoints(f)
+    cb:SetFrameLevel(base + 3)
+    cb:SetStatusBarTexture(Vigil.BAR)
+    cb:SetMinMaxValues(0, 1)
+    cb.overlay = f
+    cb.onUpdate = castOnUpdate
+    f.castbar = cb
+
+    local bg = cb:CreateTexture(nil, "BACKGROUND")
+    bg:SetAllPoints(cb)
+    bg:SetColorTexture(0.04, 0.04, 0.05, 0.85)
+
+    cb.border = Vigil:CreateBorder(cb)
+
+    local spark = cb:CreateTexture(nil, "OVERLAY")
+    spark:SetTexture("Interface\\CastingBar\\UI-CastingBar-Spark")
+    spark:SetBlendMode("ADD")
+    spark:SetSize(12, 22)
+    cb.spark = spark
+
+    -- cast time remaining, right-aligned inside the bar
+    local timeText = cb:CreateFontString(nil, "OVERLAY")
+    timeText:SetFont(STANDARD_TEXT_FONT, 8, "OUTLINE")
+    timeText:SetPoint("RIGHT", cb, "RIGHT", -3, 0)
+    timeText:SetTextColor(0.95, 0.95, 0.95)
+    f.timeText = timeText
+
+    -- spell name, left-aligned, never overlapping the time text
+    local name = cb:CreateFontString(nil, "OVERLAY")
+    name:SetFont(STANDARD_TEXT_FONT, 8, "OUTLINE")
+    name:SetPoint("LEFT", cb, "LEFT", 3, 0)
+    name:SetPoint("RIGHT", timeText, "LEFT", -3, 0)
+    name:SetJustifyH("LEFT")
+    if name.SetWordWrap then name:SetWordWrap(false) end
+    f.name = name
+
+    -- big "INTERRUPT / FEAR / STUN" call-to-action, on its own frame so it can
+    -- pop in (scale-shrinks to rest around its center anchor). Re-anchored to
+    -- each plate's health bar in OnAdded via anchorKick().
+    local kickF = CreateFrame("Frame", nil, f)
+    kickF:SetFrameLevel(base + 5)
+    kickF:SetSize(2, 2)
+    kickF:SetPoint("BOTTOM", f, "TOP", 0, 12)
+    local kick = kickF:CreateFontString(nil, "OVERLAY")
+    kick:SetFont(STANDARD_TEXT_FONT, 15, "THICKOUTLINE")
+    kick:SetPoint("CENTER", kickF, "CENTER", 0, 0)
+    kick:SetTextColor(Vigil:RGB("kick"))
+    kickF:Hide()
+    f.kickF, f.kickText = kickF, kick
+
+    -- uninterruptible padlock, right side of the bar (replaces the time text)
+    local lock = cb:CreateTexture(nil, "OVERLAY")
+    lock:SetTexture("Interface\\Buttons\\LockButton-Locked-Up")
+    lock:SetTexCoord(0.2, 0.8, 0.2, 0.8)
+    lock:SetSize(12, 12)
+    lock:SetPoint("RIGHT", cb, "RIGHT", -2, 0)
+    lock:Hide()
+    f.padlock = lock
+
+    -- thin threat strip along the top edge (managed by Modules/Threat.lua;
+    -- visible whenever the overlay exists, not only during casts)
+    local strip = f:CreateTexture(nil, "OVERLAY")
+    strip:SetTexture(Vigil.BAR)
+    strip:SetHeight(3)
+    strip:SetPoint("BOTTOMLEFT", f, "TOPLEFT", 0, 1)
+    strip:SetPoint("BOTTOMRIGHT", f, "TOPRIGHT", 0, 1)
+    strip:Hide()
+    f.threatStrip = strip
+
+    -- ---- overlay methods ----
+    function f:ShowKick(label)
+        self.kickText:SetText(label or "INTERRUPT")
+        local kf = self.kickF
+        if not kf:IsShown() then
+            kf.t = 0
+            kf:SetScale(1.4)
+            kf:Show()
+            kf:SetScript("OnUpdate", kickPop)
+            -- sound rides the pop-in: once per cue, not once per re-evaluation
+            -- (cooldown updates re-run Evaluate many times during one cast)
+            Vigil:PlayInterruptSound()
+        end
+        self.glow:Show()
+        self.glowAnim:Play()
+    end
+
+    function f:HideKick()
+        self.kickF:Hide()
+        self.kickF:SetScript("OnUpdate", nil)
+        self.kickF:SetScale(1)
+        self.glow:Hide()
+        self.glowAnim:Stop()
+    end
+
+    function f:Reset()
+        local cb = self.castbar
+        cb:SetScript("OnUpdate", nil)
+        cb:Hide()
+        self.iconF:Hide()
+        self:HideKick()
+        self.padlock:Hide()
+        self.timeText:SetText("")
+        self.active = nil
+    end
+
+    function f:ShowCast(spellName, iconTex, duration, channeling)
+        local cb = self.castbar
+        cb.duration   = duration or 2
+        cb.endTime    = GetTime() + cb.duration
+        cb.channeling = channeling
+        cb:SetValue(channeling and 1 or 0)
+        self.icon:SetTexture(iconTex or Vigil.QUESTION_ICON)
+        self.name:SetText(spellName or "")
+        self.timeText:SetText("")
+        cb:SetStatusBarColor(Vigil:RGB(channeling and "channel" or "cast"))
+        self.padlock:Hide()
+        self:HideKick()
+        self.iconF:Show()
+        cb:Show()
+        cb:SetScript("OnUpdate", cb.onUpdate)
+    end
+
+    return f
+end
+
+local function Acquire()
+    local o = table.remove(pool) or CreateOverlay()
+    o:SetScale(Vigil.db.scale or 1)
+    return o
+end
+
+local function Release(o)
+    o:Reset()
+    o.threatStrip:Hide()
+    o:Hide()
+    o:ClearAllPoints()
+    anchorKick(o, nil) -- never leave the label anchored to a recycled plate's bar
+    pool[#pool + 1] = o
+end
+
+-- ---------------------------------------------------------------------------
+-- Events
+-- ---------------------------------------------------------------------------
+function M:OnEnable()
+    if not C_NamePlate then
+        Vigil:Print("This client has no nameplate API (C_NamePlate) — Vigil can't run here.")
+        return
+    end
+    Vigil:RegisterEvent("NAME_PLATE_UNIT_ADDED",   function(_, unit) M:OnAdded(unit) end)
+    Vigil:RegisterEvent("NAME_PLATE_UNIT_REMOVED", function(_, unit) M:OnRemoved(unit) end)
+end
+
+function M:OnAdded(unit)
+    if not Vigil.db.enabled then return end
+    if not UnitCanAttack("player", unit) or UnitIsDead(unit) then return end
+
+    local plate = C_NamePlate.GetNamePlateForUnit(unit)
+    if not plate then return end
+
+    local o = Acquire()
+    o:ClearAllPoints()
+    o:SetPoint("TOP", plate, "BOTTOM", 0, -2) -- rides just below the plate; follows it
+    o.plate = plate
+
+    -- match the health bar's width so the cast bar aligns edge-to-edge with it
+    -- (the icon hangs off the left, Plater-style)
+    local hb = plate.UnitFrame and plate.UnitFrame.healthBar
+    local w = hb and hb:GetWidth()
+    o:SetWidth((w and w > 60) and w or BAR_W)
+    anchorKick(o, hb)
+
+    o:Show()
+    Vigil.plates[unit] = o
+
+    local guid = UnitGUID(unit)
+    if guid then Vigil.guidToUnit[guid] = unit end
+    o.guid = guid
+
+    -- catch a cast already in progress when the plate appears
+    if Vigil.CastWatch then Vigil.CastWatch:Refresh(unit) end
+    if Vigil.Auras then Vigil.Auras:Refresh(unit) end
+end
+
+function M:OnRemoved(unit)
+    local o = Vigil.plates[unit]
+    if not o then return end
+    if o.guid then Vigil.guidToUnit[o.guid] = nil end
+    if Vigil.Auras then Vigil.Auras:Remove(unit) end
+    o.plate = nil
+    Vigil.plates[unit] = nil
+    Release(o)
+end
+
+Vigil.Nameplates = M

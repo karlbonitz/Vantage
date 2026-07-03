@@ -1,0 +1,4 @@
+# packager output / OS noise
+*.zip
+.DS_Store
+Thumbs.db
