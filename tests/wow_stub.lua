@@ -453,22 +453,29 @@ C_Timer = {
 -- ---------------------------------------------------------------------------
 
 -- a plate object shaped like a 2.5.x nameplate (what Skin/Nameplates reach into)
+-- Shaped like the 2.5.5+ Anniversary client's NamePlateUnitFrameTemplate
+-- (verified against Blizzard_NamePlates.xml): the health bar lives inside
+-- HealthBarsContainer next to the rounded border art, uf.healthBar is the
+-- Lua-side alias, and the plate cast bar is LOWERCASE castBar.
 function Harness.MakePlate()
     local plate = CreateFrame("Frame")
     local uf = CreateFrame("Frame", nil, plate)
-    uf.healthBar = CreateFrame("StatusBar", nil, uf)
-    uf.healthBar:SetWidth(124)
-    uf.healthBar:SetMinMaxValues(0, 100)
+    local container = CreateFrame("Frame", nil, uf)
+    uf.HealthBarsContainer = container
+    container.border = CreateFrame("Frame", nil, container) -- Nameplate-Border art, strata HIGH
+    local hb = CreateFrame("StatusBar", nil, container)
+    hb:SetWidth(124)
+    hb:SetMinMaxValues(0, 100)
+    hb.background = hb:CreateTexture() -- stock grey fill behind the bar
+    container.healthBar = hb
+    uf.healthBar = hb -- the alias the addon (and Blizzard code) reads
     uf.name = uf:CreateFontString()
-    uf.CastBar = CreateFrame("StatusBar", nil, uf)
+    uf.castBar = CreateFrame("StatusBar", nil, uf)
     uf.selectionHighlight = uf:CreateTexture()
-    -- classic-client plate decorations the skin must suppress
-    uf.healthBar.border = CreateFrame("Frame", nil, uf.healthBar)
-    uf.aggroHighlight = uf:CreateTexture()
     uf.LevelFrame = CreateFrame("Frame", nil, uf)
     uf.LevelFrame.levelText = uf.LevelFrame:CreateFontString()
     uf.LevelFrame.highLevelTexture = uf.LevelFrame:CreateTexture()
-    uf.ClassificationFrame = CreateFrame("Frame", nil, uf)
+    uf.RaidTargetFrame = CreateFrame("Frame", nil, uf)
     plate.UnitFrame = uf
     return plate
 end

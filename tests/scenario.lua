@@ -68,28 +68,32 @@ ok(o ~= nil, "overlay created on plate add")
 ok(not o.castbar:IsShown(), "fresh overlay's cast bar hidden before any cast")
 ok(not o.iconF:IsShown(), "fresh overlay's icon hidden before any cast")
 
--- 2b. Blizzard's own plate cast bar stays suppressed while we own cast bars
-local blizzCB = H.units.nameplate1.plate.UnitFrame.CastBar
+-- 2b. Blizzard's own plate cast bar (lowercase castBar on 2.5.5+) stays
+-- suppressed while we own cast bars
+local blizzCB = H.units.nameplate1.plate.UnitFrame.castBar
 blizzCB:Hide()
 blizzCB:Show() -- Blizzard would Show it when the mob starts casting
 ok(not blizzCB:IsShown(), "Blizzard plate cast bar suppressed on skinned enemy")
 
--- 2c. Classic plate decorations are suppressed while the skin owns the plate
--- (aggro glow / level text / classification art — the "standard Blizzard
--- frame showing through" bug), and restored when the skin toggles off.
+-- 2c. Stock plate decorations are suppressed while the skin owns the plate
+-- (the rounded Nameplate-Border art with its level ring, the level text, the
+-- grey bar background — the "still looks like Blizzard plates" bug), and
+-- restored when the skin toggles off.
 local blizzUF = H.units.nameplate1.plate.UnitFrame
-eq(blizzUF.aggroHighlight.__alpha, 0, "aggro glow suppressed on skinned plate")
+local blizzBorder = blizzUF.HealthBarsContainer.border
+ok(not blizzBorder:IsShown(), "rounded border art hidden on skinned plate")
+eq(blizzBorder.__alpha, 0, "rounded border art alpha-zeroed on skinned plate")
 eq(blizzUF.LevelFrame.__alpha, 0, "Blizzard level frame suppressed on skinned plate")
-eq(blizzUF.ClassificationFrame.__alpha, 0, "classification art suppressed on skinned plate")
 eq(blizzUF.selectionHighlight.__alpha, 0, "selection highlight suppressed on skinned plate")
-ok(not blizzUF.healthBar.border:IsShown(), "Blizzard bar border hidden on skinned plate")
+eq(blizzUF.healthBar.background.__alpha, 0, "stock grey bar background suppressed")
 SlashCmdList["VIGIL"]("skin") -- off
-eq(blizzUF.aggroHighlight.__alpha, 1, "aggro glow restored when skin off")
+ok(blizzBorder:IsShown(), "rounded border art restored when skin off")
+eq(blizzBorder.__alpha, 1, "rounded border alpha restored when skin off")
 eq(blizzUF.LevelFrame.__alpha, 1, "Blizzard level frame restored when skin off")
 eq(blizzUF.selectionHighlight.__alpha, 0.25, "selection highlight restored when skin off")
-ok(blizzUF.healthBar.border:IsShown(), "Blizzard bar border restored when skin off")
+eq(blizzUF.healthBar.background.__alpha, 0.85, "stock bar background restored when skin off")
 SlashCmdList["VIGIL"]("skin") -- back on
-eq(blizzUF.aggroHighlight.__alpha, 0, "aggro glow re-suppressed when skin back on")
+eq(blizzBorder.__alpha, 0, "rounded border re-suppressed when skin back on")
 
 -- 3. Kickable cast starts (live API path): Greater Heal is in the Intel Pack
 H.units.nameplate1.casting = {
@@ -279,8 +283,8 @@ ok(export:find('"miss":true', 1, true) ~= nil, "export contains the let-through 
 
 -- plate inspector (/vigil plate): dumps the frame tree with parentKeys
 local dump = Vigil.Inspect:DumpPlate(H.units.nameplate2.plate)
-ok(dump:find("[healthBar]", 1, true) ~= nil, "inspector dump names the health bar")
-ok(dump:find("[aggroHighlight]", 1, true) ~= nil, "inspector dump names the aggro glow")
+ok(dump:find("healthBar", 1, true) ~= nil, "inspector dump names the health bar")
+ok(dump:find("[border]", 1, true) ~= nil, "inspector dump names the border art")
 ok(dump:find("[LevelFrame]", 1, true) ~= nil, "inspector dump names the level frame")
 
 -- 13. Options interactions: toggle every checkbox + run reset

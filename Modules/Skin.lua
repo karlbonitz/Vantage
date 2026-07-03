@@ -429,7 +429,12 @@ local function setBlizzDecor(uf, shown)
         if obj and obj.SetAlpha then obj:SetAlpha(a) end
     end
     local hb = uf.healthBar
-    local bd = hb and hb.border
+    -- The rounded gold Nameplate-Border art (level ring baked into its right
+    -- end): at healthBar.border on 2.5.4-era clients, but the 2.5.5+
+    -- Anniversary client moved it to UnitFrame.HealthBarsContainer.border
+    -- (frameStrata HIGH, so it out-draws everything until suppressed).
+    local bd = (hb and hb.border)
+        or (uf.HealthBarsContainer and uf.HealthBarsContainer.border)
     if bd then
         if shown then
             if bd.Show then bd:Show() end
@@ -438,6 +443,8 @@ local function setBlizzDecor(uf, shown)
         end
         setA(bd, shown and 1 or 0)
     end
+    -- the health bar's stock grey background texture (ours is darker)
+    setA(hb and hb.background, shown and 0.85 or 0)
     -- 0.25 is Blizzard's default selection alpha
     setA(uf.selectionHighlight, shown and 0.25 or 0)
     -- rounded gold/red threat glow around the bar (classic plates)
