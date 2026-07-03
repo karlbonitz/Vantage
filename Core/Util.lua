@@ -4,7 +4,7 @@
 local addonName, Vigil = ...
 
 Vigil.name = addonName
-Vigil.version = "0.5.0"
+Vigil.version = "0.6.0"
 
 -- ---------------------------------------------------------------------------
 -- Output
@@ -32,6 +32,8 @@ Vigil.colors = {
     cast      = { 0.95, 0.65, 0.10 }, -- normal enemy cast
     channel   = { 0.10, 0.75, 1.00 }, -- enemy channel
     unknown   = { 0.70, 0.70, 0.70 }, -- cast we have no intel on
+    kicked    = { 0.18, 0.64, 0.52 }, -- teal: outcome flash — the cast was stopped
+    missed    = { 0.89, 0.36, 0.31 }, -- red: outcome flash — completed while your stop was ready
     threatOK  = { 0.20, 0.80, 0.25 }, -- you are securely tanking (tank mode)
     threatWarn= { 0.95, 0.75, 0.10 }, -- climbing / near pull
     threatBad = { 0.90, 0.20, 0.20 }, -- you pulled aggro / tank lost it

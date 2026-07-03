@@ -51,6 +51,9 @@ local defaults = {
     sound        = true,   -- play a sound on a kickable opportunity
     cueUnknown   = false,  -- also cue casts we have no intel on (off = no false KICKs)
     pvp          = true,   -- cue enemy PLAYER casts vs your ready interrupt (no DB needed)
+    rangeCheck   = true,   -- only shout when the target is actually within your stop's range
+    outcomeFlash = true,   -- flash the verdict as a flagged cast ends (KICKED/MISSED/WASTED)
+    labelPos     = "center", -- cue label position: "center" (on health bar) | "above" (cast bar)
     threat       = true,   -- threat tint (feature-detected; see Modules/Threat.lua)
     tankMode     = false,  -- invert threat colors for tanking
     auras        = true,   -- show your own DoT/debuff timers on enemy plates
@@ -114,6 +117,17 @@ Vigil:RegisterEvent("PLAYER_LOGIN", function()
 
     Vigil:Print(("v%s loaded. Class: %s. Type |cffffd100/vigil|r for options, |cffffd100/vigil test|r for a demo.")
         :format(Vigil.version, class or "?"))
+
+    -- first run / upgrade notes (lastVersion is not in defaults, so a settings
+    -- reset never re-triggers the welcome)
+    local prev = Vigil.db.lastVersion
+    Vigil.db.lastVersion = Vigil.version
+    if not prev then
+        Vigil:Print("First time? Make sure enemy nameplates are ON (default key |cffffd100V|r), then target any enemy and type |cffffd100/vigil test|r to see the interrupt cue fire.")
+    elseif prev ~= Vigil.version then
+        Vigil:Print(("Updated |cffffd100%s -> %s|r. New: cues are range-aware, cast bars flash their outcome (KICKED / MISSED / WASTED), and the cue label position is configurable in |cffffd100/vigil|r.")
+            :format(prev, Vigil.version))
+    end
 end)
 
 -- ===========================================================================
@@ -153,6 +167,10 @@ SlashCmdList["VIGIL"] = function(msg)
         toggle("cueUnknown", "Cue unknown casts")
     elseif cmd == "pvp" then
         toggle("pvp", "PvP enemy-player cues")
+    elseif cmd == "range" then
+        toggle("rangeCheck", "Range-aware cue")
+    elseif cmd == "flash" then
+        toggle("outcomeFlash", "Outcome flash (KICKED/MISSED/WASTED)")
     elseif cmd == "check" then
         Vigil:CheckInterrupts()
     elseif cmd == "parse" then
@@ -180,6 +198,8 @@ function Vigil:ShowHelp()
     print("  /vigil skin     - toggle the custom nameplate skin")
     print("  /vigil unknown  - cue casts we have no intel on")
     print("  /vigil pvp      - cue enemy PLAYER casts vs your ready interrupt")
+    print("  /vigil range    - only shout when the target is in your stop's range")
+    print("  /vigil flash    - outcome flash on the bar (KICKED/MISSED/WASTED)")
     print("  /vigil check    - show your detected interrupts + readiness")
     print("  /vigil parse    - this session's interrupt report (Vigil Parse)")
     print("  /vigil export   - copy session data for the web report")
@@ -237,11 +257,13 @@ function Vigil:CheckInterrupts()
         if not known then
             print(("  %s: |cffff4444not learned%s|r%s"):format(e.spell, e.pet and " / pet not out" or "", extra))
         elseif self:EntryReady(e, "target") then
-            print(("  %s: |cff44ff44READY now|r%s"):format(e.spell, extra))
+            local far = self:EntryInRange(e, "target") == false and " |cffff4444(target out of range)|r" or ""
+            print(("  %s: |cff44ff44READY now|r%s%s"):format(e.spell, far, extra))
         else
             print(("  %s: known, |cffffd100not usable now|r (cooldown or wrong stance/form/target)%s"):format(e.spell, extra))
         end
     end
-    local r = self:GetReadyInterrupt("target")
-    print("  => ready interrupt:", r and ("|cff44ff44" .. (r.label or r.spell) .. "|r") or "|cffff4444none|r")
+    local r, inRange = self:GetReadyInterrupt("target")
+    print("  => ready interrupt:", r and ("|cff44ff44" .. (r.label or r.spell) .. "|r"
+        .. (inRange == false and " |cffff4444(out of range)|r" or "")) or "|cffff4444none|r")
 end

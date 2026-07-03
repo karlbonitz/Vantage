@@ -1,5 +1,33 @@
 # Changelog
 
+## v0.6.0 — the coach update (range, verdicts, onboarding)
+The cue gets more honest, and the addon starts teaching in the moment instead
+of only in the after-session report.
+
+- **Range-aware cues** (`/vigil range`, on by default): the shout now fires
+  only when the target is actually within your stop's range — melee for
+  Kick/Pummel/Bash, 8 yd for Psychic Scream, 30 yd for Counterspell (the
+  client API knows each spell's true range). Ready-but-too-far casts show the
+  gold awareness bar instead, and a light quarter-second re-check upgrades
+  them to the full glow + sound the moment you close the distance. Suppression
+  happens only on an EXPLICIT out-of-range answer — pet abilities (Spell Lock)
+  can't be range-checked and are never suppressed. `/vigil check` now says when
+  your ready stop is out of range, and Vigil Parse logs the new decision tier.
+- **Outcome flash** (`/vigil flash`, on by default): as a flagged cast
+  resolves, the bar flashes its verdict — teal **KICKED** (you or a groupmate
+  stopped it) or red **MISSED** (it completed while your stop sat ready — the
+  stat Vigil exists to drive down). And when your kick lands on a do-not-kick
+  cast, the plate pops a red **WASTED** label while the cast — unaffected —
+  rolls on. Visual only, no extra sound.
+- **Cue label position** (options panel): "Plate center" (default) or
+  "Above cast bar", applied live.
+- **First-run onboarding**: a fresh install gets one extra pointer (turn enemy
+  nameplates on with `V`, then `/vigil test`); version upgrades print a
+  one-line what's-new. Neither ever repeats.
+- Fix: an instant spell succeeding mid-cast no longer clears the cast bar of
+  the real cast still in flight — both detection paths now match the resolving
+  spell against the one being tracked.
+
 ## v0.5.0 — Vigil Parse, phase 1 (the collector)
 The data layer begins: "the utility parse Warcraft Logs forgot," starting with
 the closed loop that works today — collector → chat summary → export string →

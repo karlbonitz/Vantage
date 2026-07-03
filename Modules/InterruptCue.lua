@@ -47,14 +47,23 @@ function M:Evaluate(overlay, unit, spellName, info)
             tier = (info == nil) and "NOT IN DATABASE -> neutral grey" or "neutral"
             code = "unknown"
         else
-            local ready = Vigil.db.interruptCue and Vigil:GetReadyInterrupt(unit)
-            if ready then
+            local ready, inRange
+            if Vigil.db.interruptCue then
+                ready, inRange = Vigil:GetReadyInterrupt(unit)
+            end
+            if ready and inRange then
                 -- you can stop it NOW: full call to action (glow + sound + label;
                 -- ShowKick plays the sound only when the cue newly appears)
                 cb:SetStatusBarColor(Vigil:RGB("kick"))
                 overlay:ShowKick(ready.label)
                 tier = "STOP NOW -> " .. (ready.label or "INTERRUPT")
                 code, readyRef = "ready", ready
+            elseif ready then
+                -- ready but you're TOO FAR to land it: gold awareness, no shout.
+                -- The range ticker upgrades this to the full cue as you close in.
+                cb:SetStatusBarColor(Vigil:RGB("kick"))
+                overlay:HideKick()
+                tier, code = "kickable, ready but OUT OF RANGE (gold, no popup)", "range"
             elseif Vigil:HasInterrupt(unit) then
                 -- you CAN stop it, but the tool is on cooldown: show, don't shout
                 cb:SetStatusBarColor(Vigil:RGB("kickDown"))
@@ -72,15 +81,19 @@ function M:Evaluate(overlay, unit, spellName, info)
 
     Vigil:Debug("cast:", spellName or "?", "->", tier)
 
+    -- remember the decision on the cast record: CastWatch reads it to pick the
+    -- right outcome flash (MISSED needs "a window was up", WASTED needs "locked")
+    if overlay.active then overlay.active.code = code end
+
     -- Vigil Parse: record the decision (and let outcomes attach to it later)
     if Vigil.Parse then
         Vigil.Parse:OnDecision(overlay, unit, spellName, code, readyRef)
     end
 end
 
--- When your interrupt's cooldown changes, refresh any in-flight interruptible
--- cast so a freshly-available kick lights up immediately.
-local function onCooldownChange()
+-- Refresh every in-flight interruptible cast — because your interrupt's
+-- cooldown changed, or because you MOVED (range is part of the decision now).
+local function reEvaluate()
     for unit, overlay in pairs(Vigil.plates) do
         local active = overlay.active
         if active and overlay.castbar:IsShown() then
@@ -95,7 +108,20 @@ local function onCooldownChange()
 end
 
 function M:OnEnable()
-    Vigil:RegisterEvent("SPELL_UPDATE_COOLDOWN", onCooldownChange)
+    Vigil:RegisterEvent("SPELL_UPDATE_COOLDOWN", reEvaluate)
+
+    -- Movement changes interrupt range without firing any event, so a light
+    -- 0.25s pulse keeps the cue honest while casts are up. The loop touches
+    -- only plates with an active cast bar — near-zero cost when nothing casts.
+    local acc = 0
+    local ticker = CreateFrame("Frame")
+    ticker:SetScript("OnUpdate", function(_, elapsed)
+        acc = acc + elapsed
+        if acc < 0.25 then return end
+        acc = 0
+        if Vigil.db.rangeCheck == false then return end
+        reEvaluate()
+    end)
 end
 
 Vigil.Cue = M

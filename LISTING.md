@@ -11,9 +11,13 @@ TBC Classic (Anniversary). It reads **your** kit — your class, your cooldowns,
 even your pet and stance — and lights up the plate the moment acting matters:
 
 - 🔔 **The interrupt cue.** A kickable enemy cast starts while your interrupt
-  is ready → the nameplate erupts: glow, sound, and an `INTERRUPT` prompt
-  centered on the plate. No window shown if your kick is on cooldown — when
-  Vigil lights up, it means *now*.
+  is ready **and the target is in its range** → the nameplate erupts: glow,
+  sound, and an `INTERRUPT` prompt centered on the plate. On cooldown or too
+  far away, no shout — when Vigil lights up, it means *now*.
+- ⚖️ **The verdict.** As a flagged cast ends, the bar flashes what happened:
+  teal `KICKED`, red `MISSED` (it completed while your stop sat ready), or
+  `WASTED` when you spent a kick on an unkickable cast. You learn mid-pull,
+  not in a spreadsheet afterwards.
 - 🔒 **The padlock.** Casts that must NOT be kicked (uninterruptible boss
   casts, wasted-kick traps) get a padlock instead, so you hold your cooldown.
 - 🛑 **Every class, not just kickers.** No hard interrupt? Vigil offers your

@@ -16,7 +16,9 @@ Vigil.guidToUnit = {}  -- GUID -> unit token (so CLEU can find the right plate)
 local pool = {}        -- recycled overlays
 
 local BAR_W, BAR_H = 124, 12
-local POP_TIME = 0.15  -- seconds for the kick label's pop-in shrink
+local POP_TIME   = 0.15  -- seconds for the kick label's pop-in shrink
+local FLASH_TIME = 0.7   -- seconds the outcome verdict lingers (fades at the end)
+local FLASH_FADE = 0.25  -- fade-out portion of FLASH_TIME
 
 -- ---------------------------------------------------------------------------
 -- Overlay construction
@@ -52,18 +54,46 @@ local kickPop = function(kf, elapsed)
     end
 end
 
--- The call-to-action sits CENTERED ON THE HEALTH BAR — the visual center of
--- the plate, where nothing else lives (aura row is above, mana/cast bar are
--- below). Covering the HP text for the moment you're deciding to kick is the
--- point: the label IS the information right then. Falls back to hovering
--- above the cast bar if the plate has no reachable health bar.
+-- The call-to-action defaults to CENTERED ON THE HEALTH BAR — the visual
+-- center of the plate, where nothing else lives (aura row is above, mana/cast
+-- bar are below). Covering the HP text for the moment you're deciding to kick
+-- is the point: the label IS the information right then. `labelPos = "above"`
+-- moves it to hover above the cast bar instead (also the fallback when the
+-- plate has no reachable health bar).
 local function anchorKick(o, hb)
     local kf = o.kickF
     kf:ClearAllPoints()
-    if hb then
+    if hb and Vigil.db.labelPos ~= "above" then
         kf:SetPoint("CENTER", hb, "CENTER", 0, 0)
     else
         kf:SetPoint("BOTTOM", o, "TOP", 0, 12)
+    end
+end
+
+-- fade the verdict out over the flash's final stretch, then clear the bar
+local flashOnUpdate = function(cb, elapsed)
+    local o = cb.overlay
+    o.flashT = o.flashT + elapsed
+    if o.flashT >= FLASH_TIME then
+        o:Reset()
+    elseif o.flashT > FLASH_TIME - FLASH_FADE then
+        local a = (FLASH_TIME - o.flashT) / FLASH_FADE
+        cb:SetAlpha(a)
+        o.iconF:SetAlpha(a)
+    end
+end
+
+-- WASTED rides the big label frame and leaves the bar alone: the locked cast
+-- is still in flight after your kick bounced off it, so the bar (and its
+-- padlock) must keep showing. Pops in like the cue, self-hides after 0.9s.
+local wastedPop = function(kf, elapsed)
+    kf.t = kf.t + elapsed
+    local p = kf.t / POP_TIME
+    kf:SetScale(p >= 1 and 1 or (1.4 - 0.4 * p))
+    if kf.t >= 0.9 then
+        kf:SetScript("OnUpdate", nil)
+        kf:Hide()
+        kf:SetScale(1)
     end
 end
 
@@ -183,6 +213,7 @@ local function CreateOverlay()
     -- ---- overlay methods ----
     function f:ShowKick(label)
         self.kickText:SetText(label or "INTERRUPT")
+        self.kickText:SetTextColor(Vigil:RGB("kick")) -- may be red from a WASTED flash
         local kf = self.kickF
         if not kf:IsShown() then
             kf.t = 0
@@ -205,14 +236,50 @@ local function CreateOverlay()
         self.glowAnim:Stop()
     end
 
+    -- Brief verdict as a flagged cast resolves: teal KICKED (someone stopped
+    -- it), red MISSED (it completed while your stop sat ready), WASTED in
+    -- padlock red (you spent a kick on a do-not-kick cast). Visual only, no
+    -- sound; the label rides the countdown's right-aligned slot.
+    function f:FlashOutcome(color, label)
+        if not Vigil.db.outcomeFlash then self:Reset(); return end
+        if self.flashing or not self.castbar:IsShown() then return end
+        local cb = self.castbar
+        self.flashing = color
+        self.active = nil              -- decision resolved; a new cast may take over
+        self.flashT = 0
+        self:HideKick()
+        self.padlock:Hide()
+        cb:SetValue(1)
+        cb:SetStatusBarColor(Vigil:RGB(color))
+        self.timeText:SetText(label)
+        self.timeText:SetTextColor(1, 1, 1)
+        cb:SetScript("OnUpdate", flashOnUpdate)
+    end
+
+    -- see wastedPop: label-only verdict, the (still-casting) bar stays intact
+    function f:FlashWasted()
+        if not Vigil.db.outcomeFlash then return end
+        local kf = self.kickF
+        self.kickText:SetText("WASTED")
+        self.kickText:SetTextColor(Vigil:RGB("locked"))
+        kf.t = 0
+        kf:SetScale(1.4)
+        kf:Show()
+        kf:SetScript("OnUpdate", wastedPop)
+    end
+
     function f:Reset()
         local cb = self.castbar
         cb:SetScript("OnUpdate", nil)
         cb:Hide()
+        cb:SetAlpha(1)
         self.iconF:Hide()
+        self.iconF:SetAlpha(1)
         self:HideKick()
         self.padlock:Hide()
         self.timeText:SetText("")
+        self.timeText:SetTextColor(0.95, 0.95, 0.95)
+        self.flashing = nil
         self.active = nil
     end
 
@@ -222,6 +289,10 @@ local function CreateOverlay()
         cb.endTime    = GetTime() + cb.duration
         cb.channeling = channeling
         cb:SetValue(channeling and 1 or 0)
+        cb:SetAlpha(1)
+        self.iconF:SetAlpha(1)
+        self.flashing = nil
+        self.timeText:SetTextColor(0.95, 0.95, 0.95)
         self.icon:SetTexture(iconTex or Vigil.QUESTION_ICON)
         self.name:SetText(spellName or "")
         self.timeText:SetText("")
@@ -292,6 +363,14 @@ function M:OnAdded(unit)
     -- catch a cast already in progress when the plate appears
     if Vigil.CastWatch then Vigil.CastWatch:Refresh(unit) end
     if Vigil.Auras then Vigil.Auras:Refresh(unit) end
+end
+
+-- Re-apply the label-position setting to every live plate (options dropdown).
+function M:ReanchorKicks()
+    for _, o in pairs(Vigil.plates) do
+        local hb = o.plate and o.plate.UnitFrame and o.plate.UnitFrame.healthBar
+        anchorKick(o, hb)
+    end
 end
 
 function M:OnRemoved(unit)

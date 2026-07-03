@@ -35,7 +35,7 @@ function M:OnEnable()
     panel.name = "Vigil"
 
     local checks, sliders = {}, {}
-    local healthTextDD -- forward ref for refresh()
+    local healthTextDD, labelDD -- forward refs for refresh()
 
     -- ---- widget factories -------------------------------------------------
     local function header(text, y)
@@ -190,6 +190,11 @@ function M:OnEnable()
         "Against enemy players no database is needed — the cue fires whenever your interrupt (hard or soft) is ready.")
     check(COL2, y, "parse", "Log decisions (Vigil Parse)",
         "Records every cast decision + outcome: interrupts landed, casts let through while your kick was ready, reaction time. /vigil parse for a summary, /vigil export to copy the data out.")
+    y = y - 24
+    check(PAD, y, "rangeCheck", "Range-aware cue",
+        "Only shout when the target is actually within your stop's range. Ready-but-too-far casts stay gold without the popup, and the cue fires the moment you close in.")
+    check(COL2, y, "outcomeFlash", "Flash the outcome",
+        "As a flagged cast ends, the bar flashes the verdict: teal KICKED, red MISSED (it completed while your stop was ready), or WASTED (you kicked an unkickable cast).")
     y = y - 28
 
     y = header("Your auras", y)
@@ -217,6 +222,35 @@ function M:OnEnable()
     y = y - 24
     slider(PAD, y, "scale", "Overlay scale", 0.7, 1.5, 0.05, "%.2f", applyScale)
 
+    -- cue label position, sharing the slider's row (keeps the panel short)
+    local lpLabel = panel:CreateFontString(nil, "ARTWORK", "GameFontHighlight")
+    lpLabel:SetPoint("TOPLEFT", COL2 + 4, y - 5)
+    lpLabel:SetText("Cue label")
+    local LP_CHOICES = {
+        { "center", "Plate center" },
+        { "above",  "Above cast bar" },
+    }
+    local function lpText(v)
+        for _, c in ipairs(LP_CHOICES) do if c[1] == v then return c[2] end end
+        return LP_CHOICES[1][2]
+    end
+    labelDD = CreateFrame("Frame", wname(), panel, "UIDropDownMenuTemplate")
+    labelDD:SetPoint("LEFT", lpLabel, "RIGHT", -8, -2)
+    UIDropDownMenu_SetWidth(labelDD, 110)
+    UIDropDownMenu_Initialize(labelDD, function()
+        for _, c in ipairs(LP_CHOICES) do
+            local info = UIDropDownMenu_CreateInfo()
+            info.text = c[2]
+            info.checked = (Vigil.db.labelPos == c[1])
+            info.func = function()
+                Vigil.db.labelPos = c[1]
+                UIDropDownMenu_SetText(labelDD, c[2])
+                if Vigil.Nameplates then Vigil.Nameplates:ReanchorKicks() end
+            end
+            UIDropDownMenu_AddButton(info)
+        end
+    end)
+
     -- ---- refresh / reset ----------------------------------------------------
     local function refresh()
         for _, cb in ipairs(checks) do
@@ -228,6 +262,7 @@ function M:OnEnable()
             s.updateText(v)
         end
         UIDropDownMenu_SetText(healthTextDD, htLabel(Vigil.db.healthText))
+        UIDropDownMenu_SetText(labelDD, lpText(Vigil.db.labelPos))
     end
 
     reset:SetScript("OnClick", function()
@@ -236,6 +271,7 @@ function M:OnEnable()
         refreshSkin()
         refreshAuras()
         applyScale()
+        if Vigil.Nameplates then Vigil.Nameplates:ReanchorKicks() end
         Vigil:Print("Settings reset to defaults.")
     end)
 

@@ -5,10 +5,13 @@ Know exactly when to kick — and when *not* to waste it.
 
 Vigil decorates Blizzard's enemy nameplates with a cast bar that tells you, at a
 glance, whether the cast in front of you should be interrupted. When a *kickable*
-cast appears **and your interrupt is off cooldown**, the plate erupts in a gold
-glow with a sound and an `INTERRUPT` prompt. When a cast **can't** be interrupted,
-it gets a red **padlock** so you hold your kick. That's the whole pitch, and it
-works the moment you install it — no group required, no config needed.
+cast appears, **your interrupt is off cooldown, and the target is in range**,
+the plate erupts in a gold glow with a sound and an `INTERRUPT` prompt. When a
+cast **can't** be interrupted, it gets a red **padlock** so you hold your kick.
+And as each flagged cast resolves, the bar flashes the verdict — teal `KICKED`,
+or red `MISSED` when it slipped through while your stop sat ready. That's the
+whole pitch, and it works the moment you install it — no group required, no
+config needed.
 
 And it looks the part: a full custom skin — smooth gradient health bars with a
 soft drop shadow, crisp 1px borders, class colors on players, level text, a
@@ -35,7 +38,7 @@ CurseForge / Wago listings come with v1.0. Until then, from GitHub:
 2. On the character screen, open **AddOns** and make sure Vigil is enabled.
    If it shows as "out of date", tick **Load out of date AddOns** (the interface
    number in `Vigil.toc` may lag a tiny patch — see *Versioning & releases* below).
-3. Log in. You should see: `Vigil v0.5.0 loaded.`
+3. Log in. You should see: `Vigil v0.6.0 loaded.`
 4. Make sure **enemy nameplates are on** (default keybind `V`, or hold the
    nameplate key).
 
@@ -59,6 +62,8 @@ CurseForge / Wago listings come with v1.0. Until then, from GitHub:
 | `/vigil skin` | toggle the custom nameplate skin |
 | `/vigil unknown` | also cue casts Vigil has no intel on |
 | `/vigil pvp` | cue enemy **player** casts when your interrupt is ready (no DB needed) |
+| `/vigil range` | only shout when the target is within your stop's actual range |
+| `/vigil flash` | outcome flash as a flagged cast ends (KICKED / MISSED / WASTED) |
 | `/vigil parse` | chat summary of this session's interrupt stats (Vigil Parse) |
 | `/vigil export` | copy-paste window with your session data for the web report |
 | `/vigil` | **open the options panel** (`/vigil help` lists chat commands) |
@@ -97,7 +102,8 @@ You can also reach the options panel from **Esc → Options → AddOns → Vigil
 ### Known limitations / TODO
 - Cast detection currently leans on the combat log + live cast API; very short
   casts and out-of-range casters may be missed.
-- No interrupt **range** check yet (it cues when kickable + off cooldown).
+- Range awareness uses `IsSpellInRange`, which can't see **pet** abilities —
+  a Warlock's Spell Lock cue is never range-suppressed.
 - Seed spell data is small and matched by name (locale-specific). Real coverage
   ships as spellID-keyed Intel Packs.
 

@@ -152,16 +152,50 @@ function Vigil:EntryReady(e, unit)
     return true
 end
 
--- Returns the ready interrupt ENTRY you can use on `unit`, or nil. Best-first.
+-- Range: IsSpellInRange knows each spell's REAL range (melee for Kick/Pummel,
+-- 8yd for Psychic Scream, 30yd for Counterspell, ...). Returns true / false, or
+-- nil when the API can't answer — pet abilities (Spell Lock) live outside the
+-- player spellbook, and some spells just report nil. Callers must treat nil as
+-- "don't suppress": we only ever mute the cue on an EXPLICIT out-of-range.
+function Vigil:EntryInRange(e, unit)
+    if not unit or e.pet or not IsSpellInRange then return nil end
+    local r = IsSpellInRange(e.spell, unit)
+    if r == 1 then return true elseif r == 0 then return false end
+    return nil
+end
+
+-- Returns the best ready interrupt ENTRY for `unit`, plus whether it's in range:
+--   entry, true   -> usable RIGHT NOW (in range, or range unknowable)
+--   entry, false  -> ready, but every ready option is out of range (move closer)
+--   nil           -> nothing ready
+-- Prefers an in-range entry over an earlier out-of-range one, so a Rogue too far
+-- for Kick still gets an in-range alternative when one exists.
 function Vigil:GetReadyInterrupt(unit)
     local list = self.ClassInterrupts[self.playerClass]
     if not list then return nil end
+    local tooFar
     for i = 1, #list do
-        if self:EntryReady(list[i], unit) then
-            return list[i]
+        local e = list[i]
+        if self:EntryReady(e, unit) then
+            if self.db.rangeCheck == false or self:EntryInRange(e, unit) ~= false then
+                return e, true
+            end
+            tooFar = tooFar or e
         end
     end
+    if tooFar then return tooFar, false end
     return nil
+end
+
+-- Is `name` one of YOUR class's interrupt tools? (CastWatch uses this to spot
+-- a kick you just spent on a cast marked do-not-kick.)
+function Vigil:IsMyInterrupt(name)
+    local list = self.ClassInterrupts[self.playerClass]
+    if not list then return false end
+    for i = 1, #list do
+        if list[i].spell == name then return true end
+    end
+    return false
 end
 
 -- Do we have ANY interrupt that could work on `unit` — learned (or on a summoned pet),
