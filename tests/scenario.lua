@@ -228,7 +228,7 @@ H.FireEvent("UNIT_THREAT_LIST_UPDATE")
 H.Advance(0.3)
 ok(b2.__vr == 0 and b2.__vg == 0, "border clears when the mob leaves you")
 bc = uf2.healthBar.__barcolor
-ok(bc and bc[1] > 0.55 and bc[1] < 0.75, "tank's mob -> calm rust BAR")
+ok(bc and bc[3] > bc[1], "tank's mob -> cool slate BAR (calm is never red-family)")
 H.units.nameplate2.inCombat = false
 H.FireEvent("UNIT_THREAT_LIST_UPDATE")
 H.Advance(0.3)

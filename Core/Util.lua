@@ -39,7 +39,9 @@ Vigil.colors = {
     threatBad = { 0.90, 0.20, 0.20 }, -- you pulled aggro / tank lost it
     -- group aggro BAR colors (the Plater-style "whose problem is this?" scheme)
     aggroAlarm= { 1.00, 0.25, 0.15 }, -- it's coming for YOU (dps) / you lost it (tank)
-    aggroCalm = { 0.62, 0.30, 0.25 }, -- someone else's problem (warm rust, not dead brown)
+    aggroCalm = { 0.38, 0.44, 0.58 }, -- someone else's problem: COOL slate — calm must
+                                      -- leave the red family entirely, or it blurs into
+                                      -- alarm in dungeon lighting (hue > brightness)
     aggroSafe = { 0.28, 0.72, 0.35 }, -- tank mode: safely on you
 }
 
