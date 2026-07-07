@@ -4,7 +4,7 @@
 local addonName, Vigil = ...
 
 Vigil.name = addonName
-Vigil.version = "0.8.0"
+Vigil.version = "0.9.0"
 
 -- ---------------------------------------------------------------------------
 -- Output

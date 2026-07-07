@@ -365,6 +365,8 @@ function M:OnEnable()
     y = y - 24
     check(PAD, y, "cueHidesText", "Cue clears the bar text",
         "While the INTERRUPT/FEAR/STUN label is centered on the health bar, that plate's level and HP text step aside so the call stands alone. Applies only to the \"Plate center\" label position; everything returns the moment the cue clears.")
+    check(COL2, y, "briefing", "Dungeon briefing",
+        "On entering a dungeon or raid Vigil has intel on, print the kick sheet: what to kick on sight, what to never waste a kick on. /vigil brief reprints it with the reasons.")
     y = y - 28
 
     y = header("Your auras", y)

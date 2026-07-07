@@ -1,5 +1,14 @@
 # Changelog
 
+## v0.9.0 — the group brain update
+
+- **The dungeon briefing.** Walk into an instance Vigil has intel on and get
+  the kick sheet before the first pull: "Kick on sight: …" and "Never kick: …",
+  straight from the Intel Pack's new zone tags (39 entries tagged with the
+  instances their verified notes name — no guessing). Auto-briefs once per
+  visit; **`/vigil brief`** reprints it with the reason behind every line.
+  Toggle: "Dungeon briefing" (on by default).
+
 ## v0.8.0 — the make-it-yours update
 A new **Style** section in `/vigil` — the skin's whole look is now tunable,
 live, with zero-config defaults unchanged:

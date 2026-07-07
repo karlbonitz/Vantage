@@ -2,7 +2,7 @@
 ## Title: Vigil
 ## Notes: Interrupt-smart nameplates — know exactly when to kick, and when not to waste it.
 ## Author: karlbonitz
-## Version: 0.8.0
+## Version: 0.9.0
 ## SavedVariables: VigilDB, VigilParseDB
 ## X-Category: Combat
 ## X-Website: https://github.com/karlbonitz/Vigil
@@ -31,4 +31,5 @@ Modules\Auras.lua
 Modules\Parse.lua
 Modules\ParseExport.lua
 Modules\Inspect.lua
+Modules\Briefing.lua
 Modules\Options.lua

@@ -213,6 +213,29 @@ H.FireEvent("COMBAT_LOG_EVENT_UNFILTERED")
 ok(VigilParseDB.roster["Ganker"] == nil, "hostile players stay out of the roster")
 SlashCmdList["VIGIL"]("roster") -- smoke: prints without error
 
+-- 6c. Dungeon briefing: zone-in to a tagged instance prints the kick sheet once
+local before = #H.printed
+H.FireEvent("ZONE_CHANGED_NEW_AREA") -- stub instance = Shadow Labyrinth, party
+local briefed, kickLine, lockLine = false, false, false
+for i = before + 1, #H.printed do
+    local line = H.printed[i]
+    if line:find("Briefing") then briefed = true end
+    if line:find("Summon Cabal Deathsworn") then kickLine = true end
+    if line:find("Sonic Boom") then lockLine = true end
+end
+ok(briefed, "briefing printed on zone-in")
+ok(kickLine, "briefing lists the zone's kick (Summon Cabal Deathsworn)")
+ok(lockLine, "briefing lists the zone's padlock (Sonic Boom)")
+before = #H.printed
+H.FireEvent("ZONE_CHANGED_NEW_AREA")
+local rebriefed = false
+for i = before + 1, #H.printed do
+    if H.printed[i]:find("Briefing") then rebriefed = true end
+end
+ok(not rebriefed, "same instance visit doesn't re-brief")
+SlashCmdList["VIGIL"]("brief") -- verbose reprint: prints without error
+ok(H.printed[#H.printed]:find("%- "), "verbose brief carries note gists")
+
 -- 7. CLEU-fallback cast (no live cast info), completes while ready -> MISSED
 H.units.nameplate1.casting = nil
 ok(not o.castbar:IsShown(), "bar clear before fallback cast starts")

@@ -84,6 +84,7 @@ local defaults = {
     nameSize     = 10,     -- nameplate name font size
     scale        = 1.0,    -- overlay scale
     parse        = true,   -- Vigil Parse: log interrupt decisions + outcomes
+    briefing     = true,   -- kick sheet on entering an instance Vigil has intel on
     debug        = false,
 }
 Vigil.defaults = defaults  -- the options panel's "Reset to defaults" reads this
@@ -191,6 +192,8 @@ SlashCmdList["VIGIL"] = function(msg)
         if Vigil.Parse then Vigil.Parse:Roster() end
     elseif cmd == "export" then
         if Vigil.ParseExport then Vigil.ParseExport:Toggle() end
+    elseif cmd == "brief" then
+        if Vigil.Briefing then Vigil.Briefing:Brief(true) end
     elseif cmd == "plate" then
         if Vigil.Inspect then Vigil.Inspect:InspectTarget() end
     elseif cmd == "debug" then
@@ -217,6 +220,7 @@ function Vigil:ShowHelp()
     print("  /vigil range    - only shout when the target is in your stop's range")
     print("  /vigil flash    - outcome flash on the bar (KICKED/MISSED/WASTED)")
     print("  /vigil check    - show your detected interrupts + readiness")
+    print("  /vigil brief    - this dungeon's kick sheet, with the why")
     print("  /vigil parse    - this session's interrupt report (Vigil Parse)")
     print("  /vigil roster   - interrupt profiles of every player Vigil has seen")
     print("  /vigil export   - copy session data for the web report")
