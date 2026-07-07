@@ -397,6 +397,40 @@ H.Advance(0.3)
 ok(b2.__vr == 0 and b2.__vg == 0, "border clears when the mob leaves you")
 bc = uf2.healthBar.__barcolor
 ok(bc and bc[3] > bc[1], "tank's mob -> cool slate BAR (calm is never red-family)")
+
+-- amber tier: my damage closes in on the holder's modeled 1.3x threshold
+H.alias.nameplate2target = "party1" -- Grimjaw holds the mob
+H.SetCLEU(nil, "SPELL_DAMAGE", nil, "Player-1-GRIM", "Grimjaw", 0x412, 0,
+    "Creature-0-2222", "Murmur", 0x10a48, 0, 7386, "Sunder Armor", 1, 1000)
+H.FireEvent("COMBAT_LOG_EVENT_UNFILTERED")
+H.SetCLEU(nil, "SPELL_DAMAGE", nil, "Player-1-ME", "Testchar", 0x511, 0,
+    "Creature-0-2222", "Murmur", 0x10a48, 0, 25457, "Big Nuke", 8, 1200)
+H.FireEvent("COMBAT_LOG_EVENT_UNFILTERED")
+H.Advance(0.3)
+bc = uf2.healthBar.__barcolor
+ok(bc and bc[3] > bc[1], "1.2x the holder's damage: still calm (under 1.3x)")
+H.SetCLEU(nil, "SPELL_DAMAGE", nil, "Player-1-ME", "Testchar", 0x511, 0,
+    "Creature-0-2222", "Murmur", 0x10a48, 0, 25457, "Big Nuke", 8, 200)
+H.FireEvent("COMBAT_LOG_EVENT_UNFILTERED")
+H.Advance(0.3)
+bc = uf2.healthBar.__barcolor
+ok(bc and bc[1] > 0.9 and bc[2] > 0.5 and bc[2] < 0.9,
+   "1.4x the holder's damage: AMBER bar (closing in, not yet red)")
+ok(o2.threatStrip:IsShown(), "amber strip shown while closing in")
+-- the red ground truth always outranks the estimate
+H.alias.nameplate2target = "player"
+H.FireEvent("UNIT_THREAT_LIST_UPDATE")
+H.Advance(0.3)
+bc = uf2.healthBar.__barcolor
+ok(bc and bc[1] == 1 and bc[2] < 0.4, "mob turns to me: alarm red wins over amber")
+-- combat ends: the tally book wipes, no stale amber next pull
+H.FireEvent("PLAYER_REGEN_ENABLED")
+H.alias.nameplate2target = "party1"
+H.FireEvent("UNIT_THREAT_LIST_UPDATE")
+H.Advance(0.3)
+bc = uf2.healthBar.__barcolor
+ok(bc and bc[3] > bc[1], "fresh combat: tallies wiped, calm again")
+
 H.units.nameplate2.inCombat = false
 H.FireEvent("UNIT_THREAT_LIST_UPDATE")
 H.Advance(0.3)

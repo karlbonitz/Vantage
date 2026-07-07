@@ -56,6 +56,7 @@ local defaults = {
     labelPos     = "center", -- cue label position: "center" (on health bar) | "above" (cast bar)
     cueHidesText = true,   -- centered cue label clears the plate's level/HP text while shown
     threat       = true,   -- threat tint (feature-detected; see Modules/Threat.lua)
+    threatAmber  = true,   -- amber "closing in" estimate from group damage tallies
     tankMode     = false,  -- invert threat colors for tanking
     auras        = true,   -- show your own DoT/debuff timers on enemy plates
     auraSize     = 18,     -- aura icon size (px)
@@ -197,6 +198,8 @@ SlashCmdList["VIGIL"] = function(msg)
         if Vigil.Briefing then Vigil.Briefing:Brief(true) end
     elseif cmd == "party" then
         toggle("partyKicks", "Party kick watch")
+    elseif cmd == "amber" then
+        toggle("threatAmber", "Amber closing-in warning")
     elseif cmd == "plate" then
         if Vigil.Inspect then Vigil.Inspect:InspectTarget() end
     elseif cmd == "debug" then
@@ -216,6 +219,7 @@ function Vigil:ShowHelp()
     print("  /vigil sound    - toggle the alert sound")
     print("  /vigil padlock  - toggle the uninterruptible marker")
     print("  /vigil threat   - toggle threat tint    (tank: /vigil tank)")
+    print("  /vigil amber    - amber warning when you're CLOSE to pulling")
     print("  /vigil auras    - toggle your DoT/debuff timer row")
     print("  /vigil skin     - toggle the custom nameplate skin")
     print("  /vigil unknown  - cue casts we have no intel on")

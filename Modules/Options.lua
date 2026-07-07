@@ -49,7 +49,7 @@ function M:OnEnable()
     scroll:SetPoint("TOPLEFT", 0, -4)
     scroll:SetPoint("BOTTOMRIGHT", -27, 4)
     local content = CreateFrame("Frame")
-    content:SetSize(590, 980)
+    content:SetSize(590, 1010)
     scroll:SetScrollChild(content)
 
     local checks, sliders, drops = {}, {}, {}
@@ -390,6 +390,9 @@ function M:OnEnable()
         "In a group, the health bar answers \"whose problem is this?\": bright red = it's coming for YOU, calm brick = the tank has it. Tank mode: green = safely yours, red = it got away. Solo and out of combat, normal colors — everything's on you anyway.")
     check(COL2, y, "tankMode", "Tank mode (invert colors)",
         "Green = securely tanking, red = you lost the mob.")
+    y = y - 24
+    check(PAD, y, "threatAmber", "Amber \"closing in\" warning",
+        "Estimates threat from your group's damage in the combat log (the client's threat API is broken, so this is honest math, not magic): amber = your damage is ~90% of the way to pulling the holder's mob. Tank mode: amber = a DPS is closing in on losing you the mob. Heals and taunts are invisible to it — expect late, never spammy, warnings.")
     y = y - 24
     check(PAD, y, "enabled", "Enable Vigil")
     check(COL2, y, "debug", "Debug messages",

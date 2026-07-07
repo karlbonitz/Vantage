@@ -75,6 +75,7 @@ local function desiredBarColor(uf)
         and UnitCanAttack("player", unit) and UnitAffectingCombat(unit) then
         local tkey = uf.__vigilThreat
         if tkey == "threatBad" then return Vigil:RGB("aggroAlarm") end
+        if tkey == "threatWarn" then return Vigil:RGB("threatWarn") end -- closing in
         if tkey == "threatOK" then return Vigil:RGB("aggroSafe") end
         return Vigil:RGB("aggroCalm")
     end

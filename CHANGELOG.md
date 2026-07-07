@@ -2,6 +2,15 @@
 
 ## v0.9.0 — the group brain update
 
+- **The amber tier: "you're closing in."** The plate now warns BEFORE you
+  pull: Vigil tallies your group's damage per mob from the combat log (the
+  client's threat API is broken — this is honest math, not magic) and goes
+  amber (strip, border, and bar) when your damage crosses ~90% of the
+  modeled pull threshold against the mob's current holder. Tank mode
+  inverts it: amber = a DPS is closing in on losing you the mob. Heals and
+  taunts are invisible to the model, so warnings run late, never spammy.
+  Red (the mob actually turning) always outranks the estimate, and the
+  tally book wipes every time combat ends. Toggle: `/vigil amber`.
 - **The party kick watch.** Nobody else needs the addon: Vigil watches the
   combat log for groupmates using their interrupts (Kick, Pummel, Shield
   Bash, Counterspell, Earth Shock, Silence — and a Felhunter's Spell Lock,

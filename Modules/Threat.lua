@@ -25,14 +25,25 @@ local function colorForStatus(unit)
     local onMe = UnitExists(mobTarget) and UnitIsUnit(mobTarget, "player")
 
     if Vigil.db.tankMode then
-        if onMe then return "threatOK" end               -- it's on you: good
+        if onMe then
+            -- it's on you — but is a DPS's damage closing in on losing it?
+            if Vigil.ThreatEst and Vigil.ThreatEst:RivalClosing(unit) then
+                return "threatWarn"
+            end
+            return "threatOK"                            -- securely yours
+        end
         -- it's actively fighting and beating on someone else: you lost it
         if UnitExists(mobTarget) and UnitAffectingCombat(unit) then
             return "threatBad"
         end
         return nil
     end
-    return onMe and "threatBad" or nil                   -- it's coming for YOU
+    if onMe then return "threatBad" end                  -- it's coming for YOU
+    -- not on you (yet): amber when your damage says you're closing in
+    if Vigil.ThreatEst and Vigil.ThreatEst:Closing(unit) then
+        return "threatWarn"
+    end
+    return nil
 end
 
 local function update()

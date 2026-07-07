@@ -13,6 +13,17 @@ or red `MISSED` when it slipped through while your stop sat ready. That's the
 whole pitch, and it works the moment you install it — no group required, no
 config needed.
 
+In a group, Vigil thinks along with the whole party. Walk into a dungeon it
+has intel on and the **briefing** prints the kick sheet before the first pull
+(`/vigil brief` for the reasons). The **party kick watch** learns your
+groupmates' interrupts from the combat log — nobody else needs the addon —
+and when a kickable cast is up while *your* stop is down, the cue quietly
+names whose interrupt is ready. And the plates answer "whose problem is
+this?": bright red = it's coming for you, cool slate = the tank has it, and
+**amber = your damage says you're closing in on pulling it** (estimated from
+group damage tallies, because the client's threat API is broken — late,
+never spammy).
+
 And it looks the part: a full custom skin — smooth gradient health bars with a
 soft drop shadow, crisp 1px borders, class colors on players, level text, a
 slim mana bar on casters, health text, a gold outline + glow on your current
@@ -64,6 +75,9 @@ CurseForge / Wago listings come with v1.0. Until then, from GitHub:
 | `/vigil sound` | toggle the alert sound |
 | `/vigil padlock` | toggle the uninterruptible marker |
 | `/vigil threat` | toggle the threat tint (`/vigil tank` inverts it for tanks) |
+| `/vigil amber` | amber warning when your damage is closing in on a pull |
+| `/vigil brief` | this dungeon's kick sheet, with the why behind each line |
+| `/vigil party` | name a ready groupmate when your own stop is down |
 | `/vigil auras` | toggle your DoT/debuff timer row |
 | `/vigil skin` | toggle the custom nameplate skin |
 | `/vigil unknown` | also cue casts Vigil has no intel on |
@@ -134,11 +148,14 @@ Vigil/
     Skin.lua                custom health-bar skin (gradient/border/text/colors)
     CastWatch.lua           detects enemy casts (live API + combat-log fallback)
     InterruptCue.lua        THE hero: glow/sound/padlock decision
-    Threat.lua              minimal, feature-detected threat tint
+    PartyKicks.lua          groupmates' interrupt cooldowns, inferred from CLEU
+    ThreatEst.lua           amber "closing in" estimate from group damage tallies
+    Threat.lua              aggro state from ground truth (mob target) + amber
     Auras.lua               your DoT/debuff timer row (swipe + dispel borders)
     Options.lua             native options panel (sections, sliders, reset)
     Parse.lua               Vigil Parse collector: decision rows + CLEU outcomes
     ParseExport.lua         /vigil export JSON copy-paste window
+    Briefing.lua            the dungeon kick sheet, printed on zone-in
   docs/
     index.html              the Vigil Parse web report (served by GitHub Pages)
   .pkgmeta                  BigWigs packager config (what ships in the zip)
@@ -148,7 +165,11 @@ Vigil/
 
 The **web report** is live at **https://karlbonitz.github.io/Vigil/** — a
 single static page (`docs/index.html`) that decodes a `/vigil export` string
-entirely in your browser. Nothing is uploaded anywhere.
+entirely in your browser: interrupt efficiency tiles, by-spell and by-dungeon
+breakdowns, reaction-time percentiles, and **your crew** (the account-wide
+roster of everyone Vigil has watched land a kick). One click packs the whole
+report into a **share link** — the data rides the URL fragment, gzipped, which
+no server ever sees. Nothing is uploaded anywhere.
 
 ## Roadmap
 
