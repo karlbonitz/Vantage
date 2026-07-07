@@ -236,6 +236,49 @@ ok(not rebriefed, "same instance visit doesn't re-brief")
 SlashCmdList["VIGIL"]("brief") -- verbose reprint: prints without error
 ok(H.printed[#H.printed]:find("%- "), "verbose brief carries note gists")
 
+-- 6d. Party kick watch: a groupmate's witnessed interrupt feeds the cd tier
+H.inGroup = true
+H.groupSize = 3 -- me + 2 (party tokens exclude yourself)
+H.units.party1 = { name = "Grimjaw", className = "Warrior", class = "WARRIOR",
+                   guid = "Player-1-GRIM", isPlayer = true, hostile = false }
+H.units.party2 = { name = "Luna", className = "Mage", class = "MAGE",
+                   guid = "Player-1-LUNA", isPlayer = true, hostile = false }
+H.FireEvent("GROUP_ROSTER_UPDATE")
+-- witness Grimjaw's Pummel land (0x412 = player + party affiliation + friendly)
+H.SetCLEU(nil, "SPELL_CAST_SUCCESS", nil, "Player-1-GRIM", "Grimjaw", 0x412, 0,
+    MOB_GUID, "Cabal Acolyte", 0x10a48, 0, 6552, "Pummel", 0)
+H.FireEvent("COMBAT_LOG_EVENT_UNFILTERED")
+-- your stop goes on cooldown; a kickable cast starts while his Pummel is down too
+for spell in pairs(cfg.cooldowns) do H.cooldowns[spell] = { H.now, 60 } end
+H.units.nameplate1.casting = {
+    name = "Greater Heal", spellID = 25314,
+    startMS = H.now * 1000, endMS = (H.now + 30) * 1000,
+}
+H.FireEvent("UNIT_SPELLCAST_START", "nameplate1")
+eq(o.active and o.active.code, "cd", "your stop down -> cd tier")
+ok(not o.kickF:IsShown(), "no mate hint while his Pummel is also down")
+local soundsBefore = H.sounds
+-- 11s later his Pummel is back (the range ticker re-evaluates the live cast)
+H.Advance(11)
+ok(o.kickF:IsShown(), "mate hint appears once his Pummel is ready")
+ok(o.kickIsMate, "hint flagged as a mate hint, not a shout")
+eq(o.kickText:GetText(), "GRIMJAW'S PUMMEL", "hint names the player and the tool")
+eq(H.sounds, soundsBefore, "mate hint is silent")
+-- your stop comes back: the real shout displaces the hint (pop + sound)
+for spell in pairs(cfg.cooldowns) do H.cooldowns[spell] = { 0, 0 } end
+H.FireEvent("SPELL_UPDATE_COOLDOWN")
+ok(o.kickF:IsShown() and not o.kickIsMate, "your ready shout displaces the mate hint")
+eq(o.kickText:GetText(), cfg.label, "shout label restored")
+eq(H.sounds, soundsBefore + 1, "the shout brings its sound")
+-- Grimjaw leaves the group: he can never be hinted again
+H.groupSize = 0
+H.inGroup = false
+H.FireEvent("GROUP_ROSTER_UPDATE")
+ok(Vigil.PartyKicks:ReadyMate() == nil, "ex-groupmates are never hinted")
+-- wind the cast down cleanly so later sections start from a quiet plate
+H.units.nameplate1.casting = nil
+H.FireEvent("UNIT_SPELLCAST_STOP", "nameplate1")
+
 -- 7. CLEU-fallback cast (no live cast info), completes while ready -> MISSED
 H.units.nameplate1.casting = nil
 ok(not o.castbar:IsShown(), "bar clear before fallback cast starts")

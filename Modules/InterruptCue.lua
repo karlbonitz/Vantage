@@ -12,6 +12,12 @@
 local addonName, Vigil = ...
 local M = Vigil:NewModule("InterruptCue")
 
+-- the party kick watch's contribution to the cd/aware tiers
+local function mateLabel()
+    if not (Vigil.db.partyKicks and Vigil.PartyKicks) then return nil end
+    return Vigil.PartyKicks:ReadyMateLabel()
+end
+
 function M:Evaluate(overlay, unit, spellName, info)
     local cb = overlay.castbar
     local tier            -- human-readable, for /vigil debug
@@ -65,16 +71,25 @@ function M:Evaluate(overlay, unit, spellName, info)
                 overlay:HideKick()
                 tier, code = "kickable, ready but OUT OF RANGE (gold, no popup)", "range"
             elseif Vigil:HasInterrupt(unit) then
-                -- you CAN stop it, but the tool is on cooldown: show, don't shout
+                -- you CAN stop it, but the tool is on cooldown: show, don't
+                -- shout — and if a groupmate's witnessed interrupt should be
+                -- ready, quietly name them instead of leaving the slot empty
                 cb:SetStatusBarColor(Vigil:RGB("kickDown"))
-                overlay:HideKick()
-                tier, code = "kickable, your interrupt on cooldown (muted)", "cd"
+                local mt, mr, mg, mb = mateLabel()
+                if mt then overlay:ShowMate(mt, mr, mg, mb) else overlay:HideKick() end
+                tier = mt and ("kickable, yours down -> mate hint: " .. mt)
+                    or "kickable, your interrupt on cooldown (muted)"
+                code = "cd"
             else
                 -- no interrupt available to you: flag the cast as kickable for
-                -- awareness, but no glow/sound/INTERRUPT nag.
+                -- awareness, but no glow/sound/INTERRUPT nag. A ready groupmate
+                -- still gets named — this is the healer calling the kick.
                 cb:SetStatusBarColor(Vigil:RGB("kick"))
-                overlay:HideKick()
-                tier, code = "kickable, no interrupt available -> GOLD awareness (no popup)", "aware"
+                local mt, mr, mg, mb = mateLabel()
+                if mt then overlay:ShowMate(mt, mr, mg, mb) else overlay:HideKick() end
+                tier = mt and ("kickable, no tool of yours -> mate hint: " .. mt)
+                    or "kickable, no interrupt available -> GOLD awareness (no popup)"
+                code = "aware"
             end
         end
     end

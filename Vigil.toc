@@ -26,6 +26,7 @@ Modules\Nameplates.lua
 Modules\Skin.lua
 Modules\CastWatch.lua
 Modules\InterruptCue.lua
+Modules\PartyKicks.lua
 Modules\Threat.lua
 Modules\Auras.lua
 Modules\Parse.lua

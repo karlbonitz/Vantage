@@ -85,6 +85,7 @@ local defaults = {
     scale        = 1.0,    -- overlay scale
     parse        = true,   -- Vigil Parse: log interrupt decisions + outcomes
     briefing     = true,   -- kick sheet on entering an instance Vigil has intel on
+    partyKicks   = true,   -- name a ready groupmate when your own stop is down
     debug        = false,
 }
 Vigil.defaults = defaults  -- the options panel's "Reset to defaults" reads this
@@ -194,6 +195,8 @@ SlashCmdList["VIGIL"] = function(msg)
         if Vigil.ParseExport then Vigil.ParseExport:Toggle() end
     elseif cmd == "brief" then
         if Vigil.Briefing then Vigil.Briefing:Brief(true) end
+    elseif cmd == "party" then
+        toggle("partyKicks", "Party kick watch")
     elseif cmd == "plate" then
         if Vigil.Inspect then Vigil.Inspect:InspectTarget() end
     elseif cmd == "debug" then
@@ -221,6 +224,7 @@ function Vigil:ShowHelp()
     print("  /vigil flash    - outcome flash on the bar (KICKED/MISSED/WASTED)")
     print("  /vigil check    - show your detected interrupts + readiness")
     print("  /vigil brief    - this dungeon's kick sheet, with the why")
+    print("  /vigil party    - name a ready groupmate when your stop is down")
     print("  /vigil parse    - this session's interrupt report (Vigil Parse)")
     print("  /vigil roster   - interrupt profiles of every player Vigil has seen")
     print("  /vigil export   - copy session data for the web report")

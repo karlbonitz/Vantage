@@ -49,7 +49,7 @@ function M:OnEnable()
     scroll:SetPoint("TOPLEFT", 0, -4)
     scroll:SetPoint("BOTTOMRIGHT", -27, 4)
     local content = CreateFrame("Frame")
-    content:SetSize(590, 950)
+    content:SetSize(590, 980)
     scroll:SetScrollChild(content)
 
     local checks, sliders, drops = {}, {}, {}
@@ -367,6 +367,9 @@ function M:OnEnable()
         "While the INTERRUPT/FEAR/STUN label is centered on the health bar, that plate's level and HP text step aside so the call stands alone. Applies only to the \"Plate center\" label position; everything returns the moment the cue clears.")
     check(COL2, y, "briefing", "Dungeon briefing",
         "On entering a dungeon or raid Vigil has intel on, print the kick sheet: what to kick on sight, what to never waste a kick on. /vigil brief reprints it with the reasons.")
+    y = y - 24
+    check(PAD, y, "partyKicks", "Party kick watch",
+        "Watches the combat log for groupmates' interrupts and infers their cooldowns — nobody else needs the addon. When a kickable cast is up and YOUR stop is down, the cue quietly names a groupmate whose interrupt should be ready. No glow, no sound: their moment, not your shout.")
     y = y - 28
 
     y = header("Your auras", y)

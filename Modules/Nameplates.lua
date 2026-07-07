@@ -239,6 +239,7 @@ local function CreateOverlay()
 
     -- ---- overlay methods ----
     function f:ShowKick(label)
+        if self.kickIsMate then self:HideKick() end -- your shout displaces the hint
         self.kickText:SetText(label or "INTERRUPT")
         self.kickText:SetTextColor(Vigil:RGB("kick")) -- may be red from a WASTED flash
         self.glowTex:SetVertexColor(Vigil:RGB("kick")) -- accent-aware, per show
@@ -260,7 +261,24 @@ local function CreateOverlay()
         self.glowAnim:Play()
     end
 
+    -- Quiet variant of ShowKick for the party kick watch: the center slot
+    -- names a groupmate whose interrupt should be ready. Smaller, class-
+    -- colored, no glow/sound/pop — it's their moment, not your shout. Never
+    -- displaces a real shout or a WASTED verdict already holding the slot.
+    function f:ShowMate(text, r, g, b)
+        if self.kickF:IsShown() and not self.kickIsMate then return end
+        self.kickIsMate = true
+        self.kickText:SetText(text)
+        self.kickText:SetTextColor(r or 1, g or 1, b or 1)
+        self.kickF:SetScale(0.85)
+        self.kickF:Show()
+        if Vigil.Skin and Vigil.Skin.CueTextSuppress then
+            Vigil.Skin:CueTextSuppress(self.unit, true) -- shares the center slot
+        end
+    end
+
     function f:HideKick()
+        self.kickIsMate = nil
         self.kickF:Hide()
         self.kickF:SetScript("OnUpdate", nil)
         self.kickF:SetScale(1)

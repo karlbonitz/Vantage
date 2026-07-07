@@ -2,6 +2,16 @@
 
 ## v0.9.0 — the group brain update
 
+- **The party kick watch.** Nobody else needs the addon: Vigil watches the
+  combat log for groupmates using their interrupts (Kick, Pummel, Shield
+  Bash, Counterspell, Earth Shock, Silence — and a Felhunter's Spell Lock,
+  attributed to its warlock through the group pet map) and infers each
+  tool's cooldown. When a kickable cast is up and YOUR stop is down, the
+  cue's center slot quietly names a groupmate whose interrupt should be
+  ready — smaller, class-colored, no glow or sound; the moment your own
+  tool returns, the real shout displaces the hint. Honesty rules: only
+  tools a player was *witnessed* using are claimed, and base cooldowns
+  mean "ready" is never called early. Toggle: `/vigil party`.
 - **The dungeon briefing.** Walk into an instance Vigil has intel on and get
   the kick sheet before the first pull: "Kick on sight: …" and "Never kick: …",
   straight from the Intel Pack's new zone tags (39 entries tagged with the
