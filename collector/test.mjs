@@ -119,5 +119,32 @@ const submit = (uuid, spells) => ({
   db.close();
 }
 
+// ---- admin dashboard: stats() + allCandidates() ----------------------------
+{
+  const db = openDb(":memory:");
+  const vseed = { 700: { name: "Verified Cast" }, 701: { name: "Also Verified" } };
+  const V  = { id: 700, name: "Verified Cast", npc: 1, zone: "Deadmines", by: "Kick", n: 1 };
+  const V2 = { id: 701, name: "Also Verified", npc: 2, zone: "Deadmines", by: "Kick", n: 1 };
+  const P  = { id: 424243, name: "No Seed Cast", npc: 3, zone: "Deadmines", by: "Kick", n: 1 };
+  // 700: three DISTINCT installs -> verified, 3 confirmers; 701: one -> verified, 1
+  ingest(db, submit("aaaa1111-0000-4000-8000-0000000000a1", [V]), { now: 200, seed: vseed });
+  ingest(db, submit("bbbb2222-0000-4000-8000-0000000000a2", [V]), { now: 201, seed: vseed });
+  ingest(db, submit("cccc3333-0000-4000-8000-0000000000a3", [V, V2]), { now: 202, seed: vseed });
+  ingest(db, submit("dddd4444-0000-4000-8000-0000000000a4", [P]), { now: 203, seed: vseed }); // pending
+
+  const stats = db.stats();
+  eq(stats.candidates, 3, "stats: 3 total candidates");
+  eq(stats.byStatus.verified, 2, "stats: 2 verified");
+  eq(stats.byStatus.pending, 1, "stats: 1 pending");
+  eq(stats.contributors, 4, "stats: 4 distinct contributors (profiles)");
+  eq(stats.submissions, 4, "stats: 4 submissions");
+
+  const all = db.allCandidates();
+  eq(all.length, 3, "allCandidates returns every row");
+  ok(all[0].status === "verified", "allCandidates orders verified first");
+  ok(all.some((c) => c.spell_id === 700 && c.confirmers === 3), "700 verified with 3 confirmers");
+  db.close();
+}
+
 if (fails.length) { console.error(`FAIL ${fails.length}/${n}:\n  - ${fails.join("\n  - ")}`); process.exit(1); }
 console.log(`OK  ${n} collector checks passed`);

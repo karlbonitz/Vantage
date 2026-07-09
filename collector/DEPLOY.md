@@ -124,6 +124,16 @@ Once a few players have contributed (a spell needs ≥3 distinct confirmers + a 
 - **Promote** whenever you want to ship what the pool has verified — it's always a PR you review.
 - **Backups**: periodically copy `/data/intel.db` off the VPS.
 
+## Admin dashboard
+
+A read-only dashboard lives at **`https://intel.yourdomain.com/admin`**. Open it, paste your
+`ADMIN_TOKEN` once (stored only in your browser, sent as a bearer token), and you get at a glance:
+how many spells are **ready to promote** (verified + ≥ N confirmers), the verified/pending/rejected
+counts, distinct contributors + submissions, and a searchable table of every candidate with its
+status, confirmers, zones and cross-check reason. It replaces eyeballing `curl /candidates`.
+
+---
+
 ## Troubleshooting
 
 | Symptom | Fix |

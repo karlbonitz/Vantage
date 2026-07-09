@@ -50,6 +50,14 @@ export function openDb(path = ":memory:") {
       `INSERT INTO submission (uuid, ip_hash, version, spells, at) VALUES (@uuid, @ip, @version, @spells, @at)`
     ),
     byStatus: db.prepare(`SELECT * FROM candidate WHERE status = ? ORDER BY spell_id`),
+    allCandidates: db.prepare(
+      `SELECT * FROM candidate ORDER BY (status = 'verified') DESC, confirmers DESC, spell_id`
+    ),
+    statusCounts: db.prepare(`SELECT status, COUNT(*) AS c FROM candidate GROUP BY status`),
+    candTotals: db.prepare(`SELECT COUNT(*) AS c, COALESCE(SUM(reports), 0) AS r FROM candidate`),
+    subStats: db.prepare(
+      `SELECT COUNT(*) AS submissions, COUNT(DISTINCT uuid) AS contributors, MAX(at) AS last FROM submission`
+    ),
   };
 
   return {
@@ -72,6 +80,18 @@ export function openDb(path = ":memory:") {
     },
     recordSubmission(row) { st.submission.run(row); },
     candidates(status = "verified") { return st.byStatus.all(status); },
+    // Everything the admin dashboard needs in two calls.
+    allCandidates() { return st.allCandidates.all(); },
+    stats() {
+      const byStatus = {};
+      for (const row of st.statusCounts.all()) byStatus[row.status] = row.c;
+      const t = st.candTotals.get();
+      const s = st.subStats.get();
+      return {
+        candidates: t.c, reports: t.r, byStatus,
+        contributors: s.contributors, submissions: s.submissions, lastSubmission: s.last,
+      };
+    },
     close() { db.close(); },
   };
 }

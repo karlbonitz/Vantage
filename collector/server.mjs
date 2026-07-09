@@ -15,9 +15,12 @@
 import { createServer } from "node:http";
 import { createHash } from "node:crypto";
 import { readFileSync, writeFileSync, renameSync, existsSync, mkdirSync, statSync } from "node:fs";
-import { dirname } from "node:path";
+import { dirname, join } from "node:path";
+import { fileURLToPath } from "node:url";
 import { openDb } from "./db.mjs";
 import { ingest } from "./ingest.mjs";
+
+const HERE = dirname(fileURLToPath(import.meta.url));
 
 const PORT = Number(process.env.PORT || 8080);
 const DB_PATH = process.env.DB_PATH || "/data/intel.db";
@@ -55,6 +58,15 @@ function rateLimited(ip) {
   return rec.n > RATE_MAX;
 }
 setInterval(() => { const cut = Date.now() - 120_000; for (const [k, v] of hits) if (v.t < cut) hits.delete(k); }, 120_000).unref();
+
+// The admin dashboard is one self-contained HTML file baked into the image.
+let adminHtml;
+function loadAdminHtml() {
+  if (adminHtml === undefined) {
+    try { adminHtml = readFileSync(join(HERE, "admin.html"), "utf8"); } catch { adminHtml = ""; }
+  }
+  return adminHtml;
+}
 
 const cors = {
   "Access-Control-Allow-Origin": ALLOW_ORIGIN,
@@ -97,6 +109,20 @@ const server = createServer(async (req, res) => {
       if (ADMIN_TOKEN && req.headers.authorization !== `Bearer ${ADMIN_TOKEN}`)
         return send(res, 401, { ok: false, error: "unauthorized" });
       return send(res, 200, { ok: true, candidates: db.candidates(url.searchParams.get("status") || "verified") });
+    }
+
+    // Admin dashboard: the HTML shell is public (inert without a token); its data
+    // endpoint is gated exactly like /candidates.
+    if (req.method === "GET" && url.pathname === "/admin") {
+      const html = loadAdminHtml();
+      if (!html) return send(res, 404, { ok: false, error: "admin page not bundled" });
+      return res.writeHead(200, { "Content-Type": "text/html; charset=utf-8", ...cors }).end(html);
+    }
+
+    if (req.method === "GET" && url.pathname === "/admin/data") {
+      if (ADMIN_TOKEN && req.headers.authorization !== `Bearer ${ADMIN_TOKEN}`)
+        return send(res, 401, { ok: false, error: "unauthorized" });
+      return send(res, 200, { ok: true, stats: db.stats(), candidates: db.allCandidates() });
     }
 
     // Push a freshly-built cross-check seed (from the GitHub Action / build-seed.mjs).
