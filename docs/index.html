@@ -374,10 +374,10 @@ function vpDecode(text) {
   return p;
 }
 
-/* Where the community-intel collector lives (Cloudflare Worker etc.). Leave blank
-   until you deploy one — the Contribute button then falls back to a GitHub issue.
-   See collector/README.md. */
-const COLLECTOR_URL = "";
+/* Where the community-intel collector lives (self-hosted Node service on Coolify).
+   Blank falls back to a GitHub issue; set it and the Contribute button POSTs to
+   <url>/submit directly. See collector/README.md. */
+const COLLECTOR_URL = "https://intel.karlbonitz.com";
 const REPO = "karlbonitz/Vantage";
 
 /* A /vantage contribute blob is a different shape from a parse export: detect it
