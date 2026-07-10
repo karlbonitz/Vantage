@@ -54,6 +54,7 @@ local defaults = {
     pvp          = true,   -- cue enemy PLAYER casts vs your ready interrupt (no DB needed)
     rangeCheck   = true,   -- only shout when the target is actually within your stop's range
     kickPriority = true,   -- when several casts are kickable at once, shout only for the top-priority one
+    announce     = false,  -- call out YOUR interrupts to party chat (off by default; throttled)
     outcomeFlash = true,   -- flash the verdict as a flagged cast ends (KICKED/MISSED/WASTED)
     labelPos     = "center", -- cue label position: "center" (on health bar) | "above" (cast bar)
     cueHidesText = true,   -- centered cue label clears the plate's level/HP text while shown
@@ -208,6 +209,10 @@ SlashCmdList["VANTAGE"] = function(msg)
         if Vantage.Briefing then Vantage.Briefing:Brief(true) end
     elseif cmd == "party" then
         toggle("partyKicks", "Party kick watch")
+    elseif cmd == "announce" then
+        toggle("announce", "Interrupt call-outs to party chat")
+    elseif cmd == "kicks" then
+        if Vantage.PartyKicks then Vantage.PartyKicks:Readout() end
     elseif cmd == "amber" then
         toggle("threatAmber", "Amber closing-in warning")
     elseif cmd == "learn" then

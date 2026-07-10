@@ -91,6 +91,10 @@ local function onCLEU()
             local exID, exName = select(15, CombatLogGetCurrentEventInfo())
             Vantage.Learn:Note(exName, exID, GetRealZoneText and GetRealZoneText(),
                 byName, byId, Vantage:NpcID(dstGUID))
+            -- coordination: call out your OWN kick to the group (opt-in, throttled)
+            if srcGUID == myGUID and Vantage.db.announce and Vantage.PartyKicks then
+                Vantage.PartyKicks:Announce(exName)
+            end
         end
     end
 

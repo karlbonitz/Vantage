@@ -320,6 +320,8 @@ DebuffTypeColor = {
 
 function GetQuestDifficultyColor() return { r = 1, g = 0.82, b = 0 } end
 function PlaySound() Harness.sounds = Harness.sounds + 1 end
+Harness.chat = {}
+function SendChatMessage(msg, chan) Harness.chat[#Harness.chat + 1] = { msg, chan } end
 function Screenshot() Harness.screenshots = Harness.screenshots + 1 end
 function InterfaceOptions_AddCategory() end
 function InterfaceOptionsFrame_OpenToCategory() end

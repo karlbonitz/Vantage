@@ -686,6 +686,28 @@ ok(tq and tq.interruptible == false, "import never overrides a curated padlock")
 local _, _, badok = Vantage.IntelPack:Import("not a pack string")
 ok(badok == false, "garbage input is rejected, not merged")
 
+-- 12d. Group kick coordination: opt-in, throttled call-outs of YOUR interrupts,
+-- plus a party-readiness readout (/vantage kicks).
+H.inGroup = true
+Vantage.db.announce = true
+H.chat = {}
+H.SetCLEU(nil, "SPELL_INTERRUPT", nil, "Player-1-ME", "Testchar", 0x511, 0, MOB_GUID,
+    "Some Caster", 0x40, 0, 2139, "Counterspell", 0, 25314, "Greater Heal")
+H.FireEvent("COMBAT_LOG_EVENT_UNFILTERED")
+ok(#H.chat >= 1 and H.chat[1][1]:find("Greater Heal", 1, true), "your interrupt is called out to the group")
+local n1 = #H.chat
+H.SetCLEU(nil, "SPELL_INTERRUPT", nil, "Player-1-ME", "Testchar", 0x511, 0, MOB_GUID,
+    "Some Caster", 0x40, 0, 2139, "Counterspell", 0, 25314, "Greater Heal")
+H.FireEvent("COMBAT_LOG_EVENT_UNFILTERED")
+eq(#H.chat, n1, "back-to-back interrupts are throttled (no chat spam)")
+Vantage.db.announce = false
+H.Advance(3) -- clear the throttle window so only the opt-out is under test
+H.SetCLEU(nil, "SPELL_INTERRUPT", nil, "Player-1-ME", "Testchar", 0x511, 0, MOB_GUID,
+    "Some Caster", 0x40, 0, 2139, "Counterspell", 0, 25314, "Greater Heal")
+H.FireEvent("COMBAT_LOG_EVENT_UNFILTERED")
+eq(#H.chat, n1, "with call-outs off, nothing is sent")
+SlashCmdList["VANTAGE"]("kicks") -- readout prints without error
+
 -- 13. Options interactions: toggle every checkbox + run reset
 for _, f in ipairs(H.frames) do
     if f.__kind == "CheckButton" and f.__scripts.OnClick then

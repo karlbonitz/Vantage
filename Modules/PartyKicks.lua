@@ -113,6 +113,45 @@ function M:ReadyMateLabel()
     return name:upper() .. "'S " .. spell:upper(), r, g, b
 end
 
+-- ---------------------------------------------------------------------------
+-- Coordination: optional interrupt call-outs + a party-readiness readout.
+-- ---------------------------------------------------------------------------
+local lastAnnounce = 0
+
+-- Call out YOUR interrupt to the group (opt-in via db.announce, and throttled so a
+-- flurry of kicks never spams chat). Only in a group; solo it stays silent.
+function M:Announce(spellStopped)
+    if not (IsInGroup and IsInGroup()) then return end
+    local now = (GetTime and GetTime()) or 0
+    if now - lastAnnounce < 2 then return end
+    lastAnnounce = now
+    local chan = (IsInRaid and IsInRaid()) and "RAID" or "PARTY"
+    if SendChatMessage then
+        SendChatMessage("Interrupted " .. (spellStopped or "a cast") .. "!", chan)
+    end
+end
+
+-- /vantage kicks: who in the group has an interrupt, and is it ready right now?
+function M:Readout()
+    local now = (GetTime and GetTime()) or 0
+    Vantage:Print("Party interrupts Vantage has witnessed:")
+    local any = false
+    for name, m in pairs(members) do
+        if inGroup[name] then
+            for spell, readyAt in pairs(m.spells) do
+                any = true
+                local left = readyAt - now
+                local state = (left <= 0) and "|cff2fa385ready|r"
+                    or ("|cffe25b4e" .. string.format("%.0fs", left) .. "|r")
+                Vantage:Print(("  %s — %s (%s)"):format(name, spell, state))
+            end
+        end
+    end
+    if not any then
+        Vantage:Print("  (none yet — Vantage learns them as your groupmates use their kicks)")
+    end
+end
+
 function M:OnEnable()
     Vantage:RegisterEvent("COMBAT_LOG_EVENT_UNFILTERED", onCLEU)
     Vantage:RegisterEvent("GROUP_ROSTER_UPDATE", rebuildRoster)
