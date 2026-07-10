@@ -210,6 +210,14 @@ local function onCLEU()
             end
         end
 
+    elseif (sub == "SPELL_AURA_BROKEN" or sub == "SPELL_AURA_BROKEN_SPELL") and srcGUID == myGUID then
+        -- a CC YOU broke (DoT/melee/AoE into a sheep, sap, fear) — the anti-stat to
+        -- your kicks: stopping a cast is good, shattering the group's CC is not.
+        session.counters.ccBreaks = (session.counters.ccBreaks or 0) + 1
+
+    elseif (sub == "SPELL_DISPEL" or sub == "SPELL_STOLEN") and srcGUID == myGUID then
+        session.counters.dispels = (session.counters.dispels or 0) + 1
+
     elseif sub == "SPELL_CAST_FAILED" then
         closeGuid(srcGUID, "stop")
 
@@ -221,13 +229,22 @@ end
 -- ---------------------------------------------------------------------------
 -- Session summary (chat): /vantage parse
 -- ---------------------------------------------------------------------------
+-- p-th percentile of a value list (nearest-rank). Sorts in place.
+local function percentile(vals, p)
+    local n = #vals
+    if n == 0 then return nil end
+    table.sort(vals)
+    return vals[math.max(1, math.ceil(p / 100 * n))]
+end
+
 function M:Summary()
     if not session then
         Vantage:Print("Parse: no session data yet.")
         return
     end
     local rows = session.rows
-    local windows, intMe, intOther, thru, rxSum, rxN = 0, 0, 0, 0, 0, 0
+    local windows, intMe, intOther, thru = 0, 0, 0, 0
+    local rxs = {}
     for i = 1, #rows do
         local r = rows[i]
         if r.win then windows = windows + 1 end
@@ -235,7 +252,7 @@ function M:Summary()
             if r.by == "me" then intMe = intMe + 1 else intOther = intOther + 1 end
         end
         if r.miss then thru = thru + 1 end
-        if r.rx then rxSum = rxSum + r.rx; rxN = rxN + 1 end
+        if r.rx then rxs[#rxs + 1] = r.rx end
     end
     local c = session.counters
     Vantage:Print("Parse — this session:")
@@ -244,12 +261,14 @@ function M:Summary()
     print(("  kick windows shown to you: |cffffd100%d|r"):format(windows))
     print(("  interrupted by you: |cff44ff44%d|r   by others: %d"):format(intMe, intOther))
     print(("  |cffff4444let through while your stop was ready: %d|r"):format(thru))
-    if rxN > 0 then
-        print(("  avg reaction (cue -> your interrupt): |cffffffff%d ms|r over %d"):format(
-            math.floor(rxSum / rxN + 0.5), rxN))
+    if #rxs > 0 then
+        print(("  reaction (cue -> your interrupt): median |cffffffff%d ms|r · 90th %d ms (n=%d)")
+            :format(percentile(rxs, 50), percentile(rxs, 90), #rxs))
     end
     print(("  your interrupt casts: %d   wasted on uninterruptible casts: %d")
         :format(c.kickCasts, c.wastedKicks))
+    print(("  CC breaks you caused: |cffe25b4e%d|r   dispels/steals: %d")
+        :format(c.ccBreaks or 0, c.dispels or 0))
     -- who carried the kicks this session (any friendly player Vantage saw)
     local ks = {}
     for name, n in pairs(session.kickers or {}) do ks[#ks + 1] = { name, n } end
@@ -322,7 +341,7 @@ function M:OnEnable()
             addon  = Vantage.version,
             start  = time(),
         },
-        counters = { kickCasts = 0, myInterrupts = 0, wastedKicks = 0, dropped = 0 },
+        counters = { kickCasts = 0, myInterrupts = 0, wastedKicks = 0, dropped = 0, ccBreaks = 0, dispels = 0 },
         rows = {},
         kickers = {}, -- name -> interrupts landed this session (any friendly player)
     }

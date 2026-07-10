@@ -708,6 +708,25 @@ H.FireEvent("COMBAT_LOG_EVENT_UNFILTERED")
 eq(#H.chat, n1, "with call-outs off, nothing is sent")
 SlashCmdList["VANTAGE"]("kicks") -- readout prints without error
 
+-- 12e. Deeper Parse: CC-breaks you caused + dispels/steals are counted (by source),
+-- and reaction times report as percentiles in the summary.
+Vantage.db.parse = true
+local sess = VantageParseDB.sessions[#VantageParseDB.sessions]
+local cb0, dp0 = sess.counters.ccBreaks, sess.counters.dispels
+H.SetCLEU(nil, "SPELL_AURA_BROKEN_SPELL", nil, "Player-1-ME", "Testchar", 0x511, 0,
+    "Creature-0-5555", "Sheeped Mob", 0x40, 0, 133, "Fireball", 4, 118, "Polymorph")
+H.FireEvent("COMBAT_LOG_EVENT_UNFILTERED")
+eq(sess.counters.ccBreaks, cb0 + 1, "a CC you broke is counted")
+H.SetCLEU(nil, "SPELL_DISPEL", nil, "Player-1-ME", "Testchar", 0x511, 0,
+    "Creature-0-5555", "Some Mob", 0x40, 0, 527, "Dispel Magic", 1, 12345, "Buff")
+H.FireEvent("COMBAT_LOG_EVENT_UNFILTERED")
+eq(sess.counters.dispels, dp0 + 1, "a dispel/steal you cast is counted")
+H.SetCLEU(nil, "SPELL_AURA_BROKEN_SPELL", nil, "Player-9-OTHER", "Rando", 0x548, 0,
+    "Creature-0-5555", "Sheeped Mob", 0x40, 0, 133, "Fireball", 4, 118, "Polymorph")
+H.FireEvent("COMBAT_LOG_EVENT_UNFILTERED")
+eq(sess.counters.ccBreaks, cb0 + 1, "someone else's CC break isn't attributed to you")
+SlashCmdList["VANTAGE"]("parse") -- summary (with percentiles) prints without error
+
 -- 13. Options interactions: toggle every checkbox + run reset
 for _, f in ipairs(H.frames) do
     if f.__kind == "CheckButton" and f.__scripts.OnClick then
