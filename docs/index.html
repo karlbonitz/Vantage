@@ -278,7 +278,7 @@ function vpPercentile(a, p) {
    totals, a by-spell breakdown, and per-session summaries. */
 function vpAggregate(sessions) {
   const agg = { casts: 0, windows: 0, intMe: 0, intOther: 0, miss: 0, rx: [],
-                kickCasts: 0, myInterrupts: 0, wastedKicks: 0, dropped: 0 };
+                kickCasts: 0, myInterrupts: 0, wastedKicks: 0, dropped: 0, ccBreaks: 0, dispels: 0 };
   const bySpell = new Map();
   const byZone = new Map();
   const perSession = [];
@@ -318,6 +318,7 @@ function vpAggregate(sessions) {
     const c = s.counters || {};
     agg.kickCasts += c.kickCasts || 0; agg.myInterrupts += c.myInterrupts || 0;
     agg.wastedKicks += c.wastedKicks || 0; agg.dropped += c.dropped || 0;
+    agg.ccBreaks += c.ccBreaks || 0; agg.dispels += c.dispels || 0;
     let topZ = '', topN = 0;
     ps.zones.forEach((n, z) => { if (n > topN) { topN = n; topZ = z; } });
     ps.zone = topZ;
@@ -393,7 +394,7 @@ function vpSample() {
   // spec: [spell, caster, zone, casts, windows, intMe(with rx spread), intOther, miss, lockedAll, wk]
   function expand(meta, start, zone, specs) {
     const rows = []; let t = start;
-    const counters = { kickCasts: 0, myInterrupts: 0, wastedKicks: 0, dropped: 0 };
+    const counters = { kickCasts: 0, myInterrupts: 0, wastedKicks: 0, dropped: 0, ccBreaks: 0, dispels: 0 };
     specs.forEach(sp => {
       const [name, src, n, win, intMe, intOther, miss, locked, wk, rxBase] = sp;
       for (let i = 0; i < n; i++) {
@@ -419,6 +420,8 @@ function vpSample() {
         rows.push(r);
       }
     });
+    counters.ccBreaks = Math.floor(rows.length / 18);
+    counters.dispels = Math.floor(rows.length / 25);
     return { meta, counters, rows };
   }
   const s1 = expand(
@@ -498,7 +501,11 @@ if (typeof module !== 'undefined') module.exports = { vpAggregate, vpDecode, vpM
            rxN ? 'fastest ' + num(fastestRx) + ' · p90 ' + num(p90Rx) + ' · over ' + num(rxN) + ' timed kicks'
                : 'no timed kicks yet') +
       tile('Wasted kicks', num(agg.wastedKicks),
-           'spent on uninterruptible casts');
+           'spent on uninterruptible casts') +
+      tile('CC breaks you caused', num(agg.ccBreaks),
+           'your damage shattered a crowd control', agg.ccBreaks ? 'var(--crit)' : null) +
+      tile('Dispels &amp; steals', num(agg.dispels),
+           'buffs and debuffs you removed');
 
     // --- by-spell table ---
     const maxN = Math.max(1, ...spells.map(s => s.n));
