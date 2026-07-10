@@ -268,6 +268,37 @@ local ci = Vantage.GetKickInfo("Tranquility")
 ok(ci and ci.interruptible == false, "curated padlock still wins over any learning")
 SlashCmdList["VANTAGE"]("learned") -- smoke: prints without error
 
+-- 6e. Community-pack TRUST GRADIENT: a community cast this install has never seen
+-- kicked cues QUIET — glow + a tentative "?" label, but NO alert sound — so a rare
+-- bad pooled entry can't scream a false INTERRUPT. Witnessing one kick graduates it
+-- to the full cue. (Needs a ready, in-range interrupt, same as the step-3 setup.)
+Vantage.CommunityPack.add(77777, "Fake Community Nuke")
+ok(not Vantage.Learn:IsConfirmed(77777, "Fake Community Nuke"), "a fresh community cast starts unconfirmed")
+H.range[cfg.spell] = 1
+local sBefore = H.sounds
+H.units.nameplate1.casting = { name = "Fake Community Nuke", spellID = 77777,
+    startMS = H.now * 1000, endMS = (H.now + 2.5) * 1000 }
+H.FireEvent("UNIT_SPELLCAST_START", "nameplate1")
+eq(o.active and o.active.code, "ready", "community cast reaches the ready tier")
+ok(o.kickF:IsShown(), "unconfirmed community cue shows a label")
+eq(o.kickText:GetText(), cfg.label .. "?", "unconfirmed community cue is tentative ('?')")
+eq(H.sounds, sBefore, "unconfirmed community cue stays SILENT (no alert)")
+
+-- witness a kick on it (hostile caster, destFlags 0x40) -> locally confirmed
+H.SetCLEU(nil, "SPELL_INTERRUPT", nil, "Player-1-ME", "Testchar", 0x511, 0, MOB_GUID,
+    "Some Caster", 0x40, 0, 2139, "Counterspell", 0, 77777, "Fake Community Nuke")
+H.FireEvent("COMBAT_LOG_EVENT_UNFILTERED")
+ok(Vantage.Learn:IsConfirmed(77777, "Fake Community Nuke"), "witnessing a kick confirms it locally")
+H.Advance(1.0) -- clear the KICKED flash
+
+-- next cast now earns the full cue: plain label + the alert sound
+local sBefore2 = H.sounds
+H.units.nameplate1.casting = { name = "Fake Community Nuke", spellID = 77777,
+    startMS = H.now * 1000, endMS = (H.now + 2.5) * 1000 }
+H.FireEvent("UNIT_SPELLCAST_START", "nameplate1")
+eq(o.kickText:GetText(), cfg.label, "confirmed community cue shows the full label (no '?')")
+eq(H.sounds, sBefore2 + 1, "confirmed community cue fires the alert")
+
 -- 6c. Dungeon briefing: zone-in to a tagged instance prints the kick sheet once
 local before = #H.printed
 H.FireEvent("ZONE_CHANGED_NEW_AREA") -- stub instance = Shadow Labyrinth, party

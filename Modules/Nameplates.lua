@@ -238,7 +238,7 @@ local function CreateOverlay()
     f.threatStrip = strip
 
     -- ---- overlay methods ----
-    function f:ShowKick(label)
+    function f:ShowKick(label, silent)
         if self.kickIsMate then self:HideKick() end -- your shout displaces the hint
         self.kickText:SetText(label or "INTERRUPT")
         self.kickText:SetTextColor(Vantage:RGB("kick")) -- may be red from a WASTED flash
@@ -254,8 +254,10 @@ local function CreateOverlay()
             kf:Show()
             kf:SetScript("OnUpdate", kickPop)
             -- sound rides the pop-in: once per cue, not once per re-evaluation
-            -- (cooldown updates re-run Evaluate many times during one cast)
-            Vantage:PlayInterruptSound()
+            -- (cooldown updates re-run Evaluate many times during one cast).
+            -- `silent` = a community-pack cue you haven't locally confirmed yet:
+            -- show the glow, but hold the alert until you've actually seen it kicked.
+            if not silent then Vantage:PlayInterruptSound() end
         end
         self.glow:Show()
         self.glowAnim:Play()

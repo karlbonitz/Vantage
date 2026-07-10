@@ -54,6 +54,17 @@ function M:Note(spellName, spellID, zone, byName, byId, npc)
     if type(spellName) ~= "string" or spellName == "" then return end
     local key = spellName:lower()
 
+    -- Local confirmation: record that THIS install witnessed this exact cast get
+    -- interrupted, even if it's already curated/community. Community-pack entries
+    -- stay a quiet "tentative" cue until they're confirmed here, so a rare bad
+    -- pooled entry can't fire a full false alarm on a cast you've never seen kicked.
+    do
+        local dd = store()
+        if type(dd.confirmed) ~= "table" then dd.confirmed = {} end
+        if spellID then dd.confirmed["#" .. spellID] = true end
+        dd.confirmed[key] = true
+    end
+
     -- Already curated (either direction)? We already know about it — never shadow
     -- a hand-verified entry, and don't clutter the learned table with knowns.
     local K = Vantage.Kickable
@@ -83,6 +94,17 @@ function M:Note(spellName, spellID, zone, byName, byId, npc)
     }
     d.count = d.count + 1
     Vantage:Debug("learned interruptible:", spellName, spellID and ("#" .. spellID) or "")
+end
+
+-- Has this install ever witnessed this exact cast get interrupted? Drives the
+-- community-pack trust gradient in Modules/InterruptCue.lua: a community cast is
+-- a quiet, tentative cue until it's confirmed here, then it earns the full alert.
+function M:IsConfirmed(spellID, spellName)
+    local c = VantageLearnedDB and VantageLearnedDB.confirmed
+    if not c then return false end
+    if spellID and c["#" .. spellID] then return true end
+    if type(spellName) == "string" and spellName ~= "" and c[spellName:lower()] then return true end
+    return false
 end
 
 function M:OnEnable()

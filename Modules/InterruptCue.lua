@@ -59,10 +59,22 @@ function M:Evaluate(overlay, unit, spellName, info)
             end
             if ready and inRange then
                 -- you can stop it NOW: full call to action (glow + sound + label;
-                -- ShowKick plays the sound only when the cue newly appears)
+                -- ShowKick plays the sound only when the cue newly appears).
                 cb:SetStatusBarColor(Vantage:RGB("kick"))
-                overlay:ShowKick(ready.label)
-                tier = "STOP NOW -> " .. (ready.label or "INTERRUPT")
+                -- Trust gradient: a community-pack cast you haven't personally seen
+                -- kicked yet shows the glow but stays QUIET (no alert, tentative "?"
+                -- label) so a rare bad pooled entry can't scream a false INTERRUPT.
+                -- Your first witnessed kick on it graduates it to the full cue.
+                local spellID = overlay.active and overlay.active.spellID
+                local tentative = info and info.community == true
+                    and not (Vantage.Learn and Vantage.Learn:IsConfirmed(spellID, spellName))
+                if tentative then
+                    overlay:ShowKick((ready.label or "INTERRUPT") .. "?", true)
+                    tier = "STOP NOW (community, unconfirmed — quiet) -> " .. (ready.label or "INTERRUPT")
+                else
+                    overlay:ShowKick(ready.label)
+                    tier = "STOP NOW -> " .. (ready.label or "INTERRUPT")
+                end
                 code, readyRef = "ready", ready
             elseif ready then
                 -- ready but you're TOO FAR to land it: gold awareness, no shout.
