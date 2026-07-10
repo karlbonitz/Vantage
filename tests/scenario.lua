@@ -318,6 +318,18 @@ elseif Vantage.playerClass == "SHAMAN" then
     ok(Vantage:MyCCMechanic("Earth Shock") == nil, "a hard-kick class exposes no soft DR category")
 end
 
+-- 6g. Truthful mid-flight timing + reaction threshold: a cast picked up already
+-- deep into its cast shows the REAL remaining time (not the full duration), and —
+-- being un-kickable within the reaction window — fires the glow but HOLDS the alert.
+H.range[cfg.spell] = 1
+local sPre = H.sounds
+H.units.nameplate1.casting = { name = "Greater Heal", spellID = 25314,
+    startMS = (H.now - 2.4) * 1000, endMS = (H.now + 0.1) * 1000 }  -- 2.5s cast, ~0.1s left
+H.FireEvent("UNIT_SPELLCAST_START", "nameplate1")
+ok(o.castbar.endTime - H.now < 0.5, "in-progress cast shows true remaining, not full duration")
+ok(o.kickF:IsShown(), "late kickable cast still shows the glow")
+eq(H.sounds, sPre, "late cast holds the alert (un-kickable in the reaction window)")
+
 -- 6c. Dungeon briefing: zone-in to a tagged instance prints the kick sheet once
 local before = #H.printed
 H.FireEvent("ZONE_CHANGED_NEW_AREA") -- stub instance = Shadow Labyrinth, party

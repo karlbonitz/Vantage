@@ -28,7 +28,10 @@ local function startFromAPI(unit)
     if not name then return false end
 
     local duration = (endMS - startMS) / 1000
-    overlay:ShowCast(name, texture, duration, channeling)
+    -- true seconds left (endMS is GetTime-based ms): equals `duration` at cast start,
+    -- but LESS when we pick the cast up mid-flight, so the bar never over-counts.
+    local remaining = endMS / 1000 - GetTime()
+    overlay:ShowCast(name, texture, duration, channeling, remaining)
     overlay.active = { name = name, spellID = spellID,
                        info = Vantage.GetKickInfo(name, spellID) }
     Vantage.Cue:Evaluate(overlay, unit, name, overlay.active.info)

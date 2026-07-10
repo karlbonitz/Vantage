@@ -347,10 +347,13 @@ local function CreateOverlay()
         self.active = nil
     end
 
-    function f:ShowCast(spellName, iconTex, duration, channeling)
+    function f:ShowCast(spellName, iconTex, duration, channeling, remaining)
         local cb = self.castbar
         cb.duration   = duration or 2
-        cb.endTime    = GetTime() + cb.duration
+        -- `remaining` (actual seconds left) is passed when we pick a cast up already
+        -- in progress, so the bar + countdown tell the truth; at cast start it's
+        -- ~= duration. Falling back to duration keeps callers without it correct.
+        cb.endTime    = GetTime() + (remaining or cb.duration)
         cb.channeling = channeling
         cb:SetValue(channeling and 1 or 0)
         cb:SetAlpha(1)

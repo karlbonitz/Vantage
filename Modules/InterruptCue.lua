@@ -68,12 +68,17 @@ function M:Evaluate(overlay, unit, spellName, info)
                 local spellID = overlay.active and overlay.active.spellID
                 local tentative = info and info.community == true
                     and not (Vantage.Learn and Vantage.Learn:IsConfirmed(spellID, spellName))
+                -- A cast already inside the reaction window can't be kicked in time;
+                -- show the glow but hold the alert — a beep you can't act on is noise.
+                local rem = cb.endTime and (cb.endTime - (GetTime and GetTime() or 0))
+                local tooLate = rem ~= nil and rem < 0.15
                 if tentative then
                     overlay:ShowKick((ready.label or "INTERRUPT") .. "?", true)
                     tier = "STOP NOW (community, unconfirmed — quiet) -> " .. (ready.label or "INTERRUPT")
                 else
-                    overlay:ShowKick(ready.label)
-                    tier = "STOP NOW -> " .. (ready.label or "INTERRUPT")
+                    overlay:ShowKick(ready.label, tooLate)
+                    tier = (tooLate and "STOP NOW (too late for a sound) -> " or "STOP NOW -> ")
+                        .. (ready.label or "INTERRUPT")
                 end
                 code, readyRef = "ready", ready
             elseif ready then
