@@ -24,11 +24,9 @@ ignore:
   - NEXT_STEPS.md
   - .github
 
-# externals:
-#   Libs/LibStub: https://repos.curseforge.com/wow/libstub/trunk
-#   Libs/CallbackHandler-1.0: https://repos.curseforge.com/wow/callbackhandler/trunk/CallbackHandler-1.0
-#   Libs/Ace3:
-#     url: https://repos.curseforge.com/wow/ace3/trunk
-#     path: Ace3
-#   Libs/LibDeflate: https://github.com/SafeteeWoW/LibDeflate
-#   Libs/LibThreatClassic2: https://github.com/Nevcairiel/LibThreatClassic2  # verify source before use
+# LibThreatClassic2 gives real threat on 2.5.x (the native threat API is unreliable
+# there). Its lib.xml is self-contained — it bundles its own LibStub, CallbackHandler
+# and Ace libraries — so this one external is all we need; the packager fetches it
+# into Libs/ at build time and the TOC loads Libs\LibThreatClassic2\lib.xml.
+externals:
+  Libs/LibThreatClassic2: https://github.com/dfherr/LibThreatClassic2

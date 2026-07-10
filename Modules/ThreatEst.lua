@@ -59,9 +59,28 @@ local function onCLEU()
     t[srcGUID] = (t[srcGUID] or 0) + amount
 end
 
--- DPS question: is MY damage closing in on this mob's current holder?
+-- Your (isTanking, status, pct) on `unit` from LibThreatClassic2, or nil if the
+-- library isn't embedded or has no data for this mob yet. pct = % of the pull
+-- threshold (100 = you'd pull); status 3/2 = tanking (secure/insecure), 1 = above
+-- the tank but not tanking, 0 = below.
+function M:Situation(unit)
+    local lib = self.threatLib
+    if not lib then return nil end
+    local isTanking, status, pct = lib:UnitDetailedThreatSituation("player", unit)
+    if status == nil then return nil end
+    return isTanking, status, pct
+end
+
+-- DPS question: am I closing in on pulling this mob off its current holder?
 function M:Closing(unit)
     if not Vantage.db.threatAmber then return false end
+    -- Prefer real threat: closing = you're not the tank but your threat is at/over
+    -- the tank's (status >= 1) or nearing the pull threshold.
+    local isTanking, status, pct = self:Situation(unit)
+    if status ~= nil then
+        if isTanking then return false end
+        return status >= 1 or (pct ~= nil and pct >= 80)
+    end
     local guid = UnitGUID(unit)
     local t = guid and tallies[guid]
     if not t or not myGUID then return false end
@@ -76,9 +95,14 @@ function M:Closing(unit)
     return mine >= holder * CLOSING
 end
 
--- Tank question: is any OTHER tallied source closing in on my mob?
+-- Tank question: is someone else about to pull my mob off me?
 function M:RivalClosing(unit)
     if not Vantage.db.threatAmber then return false end
+    -- Prefer real threat: you hold it, but only INSECURELY -> a rival is right behind.
+    local isTanking, status = self:Situation(unit)
+    if status ~= nil then
+        return (isTanking and status == 2) or false
+    end
     local guid = UnitGUID(unit)
     local t = guid and tallies[guid]
     if not t or not myGUID then return false end
@@ -92,6 +116,10 @@ end
 
 function M:OnEnable()
     myGUID = UnitGUID("player")
+    -- Real threat when LibThreatClassic2 is embedded (see .pkgmeta / the TOC). The
+    -- native 2.5.x threat API is unreliable, so the amber tier prefers the library
+    -- and only falls back to the damage estimate below when it isn't present.
+    self.threatLib = LibStub and LibStub("LibThreatClassic2", true)
     Vantage:RegisterEvent("COMBAT_LOG_EVENT_UNFILTERED", onCLEU)
     Vantage:RegisterEvent("PLAYER_REGEN_ENABLED", wipeTallies) -- fresh book per combat
     Vantage:RegisterEvent("PLAYER_ENTERING_WORLD", wipeTallies)

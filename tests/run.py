@@ -27,8 +27,14 @@ def toc_files():
     with open(os.path.join(ROOT, "Vantage.toc")) as fh:
         for line in fh:
             line = line.strip()
-            if line and not line.startswith("#"):
-                files.append(line.replace("\\", "/"))
+            if not line or line.startswith("#"):
+                continue
+            # Embedded libraries (Libs/...) are fetched by the packager at build
+            # time and aren't in a source checkout; the harness exercises the
+            # wiring through stubs in wow_stub.lua instead of loading them.
+            if line.lower().startswith("libs"):
+                continue
+            files.append(line.replace("\\", "/"))
     return files
 
 

@@ -330,6 +330,26 @@ ok(o.castbar.endTime - H.now < 0.5, "in-progress cast shows true remaining, not 
 ok(o.kickF:IsShown(), "late kickable cast still shows the glow")
 eq(H.sounds, sPre, "late cast holds the alert (un-kickable in the reaction window)")
 
+-- 6h. Real threat via the embedded LibThreatClassic2 (stubbed here): the amber
+-- "about to pull" tier uses actual threat % instead of the damage-tally estimate.
+local TE = Vantage.ThreatEst
+Vantage.db.threatAmber = true
+local mob = H.units.nameplate1
+mob.threat = nil
+ok(TE:Situation("nameplate1") == nil, "no library data -> Situation nil (damage estimate takes over)")
+mob.threat = { isTanking = false, status = 0, pct = 85 }
+ok(TE:Closing("nameplate1"), "DPS at 85% of the pull threshold -> closing (amber)")
+mob.threat = { isTanking = false, status = 0, pct = 40 }
+ok(not TE:Closing("nameplate1"), "DPS at 40% -> not closing yet")
+mob.threat = { isTanking = false, status = 1, pct = 60 }
+ok(TE:Closing("nameplate1"), "DPS above the tank (status 1) -> closing even under 80%")
+mob.threat = { isTanking = true, status = 3, pct = 100 }
+ok(not TE:Closing("nameplate1"), "you're already tanking -> not 'closing to pull'")
+ok(not TE:RivalClosing("nameplate1"), "tank securely tanking -> no rival warning")
+mob.threat = { isTanking = true, status = 2, pct = 100 }
+ok(TE:RivalClosing("nameplate1"), "tank INSECURELY tanking (status 2) -> rival closing (amber)")
+mob.threat = nil
+
 -- 6c. Dungeon briefing: zone-in to a tagged instance prints the kick sheet once
 local before = #H.printed
 H.FireEvent("ZONE_CHANGED_NEW_AREA") -- stub instance = Shadow Labyrinth, party

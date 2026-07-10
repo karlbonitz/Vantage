@@ -379,6 +379,24 @@ function UnitDetailedThreatSituation(_, t)
     return th.isTanking or false, th.status, th.pct
 end
 
+-- LibStub + a LibThreatClassic2 stub for Vantage's embedded-threat wiring. The lib
+-- method reads the SAME unit.threat table the native stub does, so a scenario drives
+-- both through one control. (In-game these come from the packaged Libs/.)
+local _libstub = {}
+LibStub = setmetatable({
+    NewLibrary = function(_, n) _libstub[n] = _libstub[n] or {}; return _libstub[n] end,
+    GetLibrary = function(_, n) return _libstub[n] end,
+}, { __call = function(_, n) return _libstub[n] end })
+do
+    local tl = LibStub:NewLibrary("LibThreatClassic2", 1)
+    function tl:UnitDetailedThreatSituation(_, mob)
+        local u = U(mob)
+        local th = u and u.threat
+        if not th then return nil end
+        return th.isTanking or false, th.status, th.pct, th.pct, th.value or 0
+    end
+end
+
 function UnitCastingInfo(t)
     local u = U(t)
     local c = u and u.casting
