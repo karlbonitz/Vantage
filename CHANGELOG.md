@@ -19,6 +19,18 @@
 - **Cleaner threat display.** The aggro strip under the bar now shows only on your
   current target — on every other plate the border already carries the threat color,
   so the redundant "line under the bar" is gone.
+- **Kick the right one first.** When several casts are kickable at once, only the
+  highest-priority one keeps the full shout, so the cue points you at the cast that
+  matters instead of every one equally. Toggle with `/vantage priority`.
+- **Shareable Intel Packs.** `/vantage share` exports the kicks Vantage has taught
+  itself as a copy-paste string; `/vantage import` merges a friend's into yours.
+  Direct player-to-player sharing — curated data always wins, no server needed.
+- **Group coordination.** `/vantage announce` calls out your interrupts to party
+  chat (off by default, throttled so a flurry of kicks never spams it), and
+  `/vantage kicks` reads out which groupmates have an interrupt ready right now.
+- **Deeper Parse.** `/vantage parse` now tracks the CC breaks you caused and your
+  dispels/steals, and reports your cue→interrupt reaction as a median and 90th
+  percentile — all of it rides into the web-report export.
 
 ## v0.11.0 — the community update
 

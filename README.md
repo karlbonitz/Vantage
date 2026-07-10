@@ -99,15 +99,20 @@ addon manager. Or install straight from GitHub:
 | `/vantage amber` | amber warning when your damage is closing in on a pull |
 | `/vantage brief` | this dungeon's kick sheet, with the why behind each line |
 | `/vantage party` | name a ready groupmate when your own stop is down |
+| `/vantage announce` | call out your interrupts to party chat (off by default, throttled) |
+| `/vantage kicks` | read out which groupmates have an interrupt ready right now |
 | `/vantage auras` | toggle your DoT/debuff timer row |
 | `/vantage skin` | toggle the custom nameplate skin |
 | `/vantage unknown` | also cue casts Vantage has no intel on |
 | `/vantage learn` | toggle learning kicks from live combat (on by default) |
 | `/vantage learned` | list the interruptible casts Vantage has taught itself |
 | `/vantage contribute` | share your self-taught kicks with the community pool (anonymous) |
+| `/vantage share` | export your self-learned kicks as a copy-paste Intel Pack string |
+| `/vantage import` | merge a shared Intel Pack string into yours (curated always wins) |
 | `/vantage pvp` | cue enemy **player** casts when your interrupt is ready (no DB needed) |
 | `/vantage range` | only shout when the target is within your stop's actual range |
 | `/vantage flash` | outcome flash as a flagged cast ends (KICKED / MISSED / WASTED) |
+| `/vantage priority` | when several casts are kickable at once, shout only for the top one |
 | `/vantage parse` | chat summary of this session's interrupt stats (Vantage Parse) |
 | `/vantage roster` | lifetime interrupt profiles of every friendly player Vantage has witnessed |
 | `/vantage export` | copy-paste window with your session data for the web report |
