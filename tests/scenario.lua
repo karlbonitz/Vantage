@@ -299,6 +299,25 @@ H.FireEvent("UNIT_SPELLCAST_START", "nameplate1")
 eq(o.kickText:GetText(), cfg.label, "confirmed community cue shows the full label (no '?')")
 eq(H.sounds, sBefore2 + 1, "confirmed community cue fires the alert")
 
+-- 6f. Diminishing returns: repeated CC of one category makes the next application
+-- immune, and TargetSusceptible (so the cue) suppresses that soft stop. Below the
+-- immune bar the CC still lands (reduced), so the cue stays.
+local DGUID = "Creature-0-DR-TEST-1"
+ok(not Vantage:DRImmune(DGUID, "fear"), "no DR before any CC lands")
+Vantage:NoteDR(DGUID, "fear"); Vantage:NoteDR(DGUID, "fear")
+ok(not Vantage:DRImmune(DGUID, "fear"), "2 applications still land (reduced) -> cue stays")
+Vantage:NoteDR(DGUID, "fear")
+ok(Vantage:DRImmune(DGUID, "fear"), "3 applications -> next is immune, cue suppressed")
+ok(not Vantage:DRImmune(DGUID, "stun"), "DR is per-category: stun unaffected by fear stacks")
+Vantage:ClearDR(DGUID)
+ok(not Vantage:DRImmune(DGUID, "fear"), "ClearDR (target died / plate gone) resets it")
+ok(Vantage:MyCCMechanic("Counterspell") == nil, "a hard kick maps to no DR category")
+if Vantage.playerClass == "PRIEST" then
+    eq(Vantage:MyCCMechanic("Psychic Scream"), "fear", "your Fear maps to the fear DR category")
+elseif Vantage.playerClass == "SHAMAN" then
+    ok(Vantage:MyCCMechanic("Earth Shock") == nil, "a hard-kick class exposes no soft DR category")
+end
+
 -- 6c. Dungeon briefing: zone-in to a tagged instance prints the kick sheet once
 local before = #H.printed
 H.FireEvent("ZONE_CHANGED_NEW_AREA") -- stub instance = Shadow Labyrinth, party

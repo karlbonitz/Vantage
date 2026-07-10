@@ -15,7 +15,8 @@
 -- carry no `mechanic` and skip all of this — their "will it land?" is the cast's own
 -- interruptibility (KickableSpells.lua), not the caster's CC immunity.
 --
--- TODO: diminishing returns (repeated CC on the same target) is NOT modeled yet.
+-- Diminishing returns (repeated CC of one category on one target) IS modeled — see
+-- Vantage:NoteDR / :DRImmune below, fed from your own CC applications by CastWatch.
 local addonName, Vantage = ...
 
 -- Mechanics: stun, fear, sleep, silence, incapacitate, disorient, root, charm.
@@ -199,11 +200,49 @@ function Vantage.IsBossUnit(unit)
     return false
 end
 
+-- ── Diminishing returns ─────────────────────────────────────────────────────
+-- Repeated CC of one category loses duration (full -> 1/2 -> 1/4 -> immune) and
+-- the window resets ~18s after the last application. We track only YOUR own
+-- applications (fed from CastWatch's combat log) and suppress a soft cue once the
+-- next application would be immune — so Vantage never tells you to re-Fear/-Stun a
+-- target that will just shrug it off. Below the immune bar the CC still lands
+-- (shorter), so the cue stays: a reduced stop is still a stop.
+local DR_WINDOW    = 18   -- seconds a category stays "hot" after an application
+local DR_IMMUNE_AT = 3    -- after 3 in-window applications, the 4th is immune
+local drState = {}        -- [guid] = { [mechanic] = { n = count, expires = t } }
+
+function Vantage:NoteDR(guid, mechanic)
+    if not guid or not mechanic then return end
+    local now = (GetTime and GetTime()) or 0
+    local g = drState[guid]; if not g then g = {}; drState[guid] = g end
+    local e = g[mechanic]
+    if e and now <= e.expires then e.n = e.n + 1 else e = { n = 1 }; g[mechanic] = e end
+    e.expires = now + DR_WINDOW
+end
+
+function Vantage:DRImmune(guid, mechanic)
+    if not guid or not mechanic then return false end
+    local g = drState[guid]; if not g then return false end
+    local e = g[mechanic]; if not e then return false end
+    if ((GetTime and GetTime()) or 0) > e.expires then g[mechanic] = nil; return false end
+    return e.n >= DR_IMMUNE_AT
+end
+
+-- Drop a unit's DR when it dies / its plate goes away (keeps drState bounded).
+function Vantage:ClearDR(guid)
+    if guid then drState[guid] = nil end
+end
+
 -- Will a soft CC of `mechanic` land on `unit`? Hard kicks pass a nil mechanic -> true.
 function Vantage:TargetSusceptible(unit, mechanic)
     if not mechanic then return true end           -- hard kick: no CC immunity to consider
     if not unit then return true end
-    if UnitIsPlayer(unit) then return true end      -- players: susceptible (DR not modeled yet)
+
+    -- Diminishing returns (players AND mobs): once you've stacked this category to
+    -- the immune bar, the next application is wasted — stop cueing it.
+    if UnitGUID and Vantage:DRImmune(UnitGUID(unit), mechanic) then return false end
+
+    if UnitIsPlayer(unit) then return true end      -- otherwise players are always CCable
 
     local imm = Vantage.NpcImmunity(unit)
     if imm then

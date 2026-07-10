@@ -198,6 +198,19 @@ function Vantage:IsMyInterrupt(name)
     return false
 end
 
+-- The DR category of one of YOUR soft CC tools, by spell name (nil for a hard kick,
+-- or a spell that isn't yours). CastWatch banks your CC applications through this so
+-- the cue can respect diminishing returns (see Vantage:NoteDR in Immunities.lua).
+function Vantage:MyCCMechanic(name)
+    local list = self.ClassInterrupts[self.playerClass]
+    if not list or not name then return nil end
+    for i = 1, #list do
+        local e = list[i]
+        if e.soft and e.mechanic and e.spell == name then return e.mechanic end
+    end
+    return nil
+end
+
 -- Do we have ANY interrupt that could work on `unit` — learned (or on a summoned pet),
 -- type-valid, and the target not immune to its mechanic? Ignores cooldown/stance, so it
 -- distinguishes "on cooldown" (muted cue) from "nothing of mine can stop this" (awareness

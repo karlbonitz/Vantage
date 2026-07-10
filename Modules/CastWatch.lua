@@ -48,6 +48,17 @@ local myGUID
 local function onCLEU()
     local _, sub, _, srcGUID, _, _, _, dstGUID = CombatLogGetCurrentEventInfo()
 
+    -- Diminishing returns: bank YOUR own soft-CC applications so the cue stops
+    -- nagging you to re-apply a category the target is now immune to, and forget a
+    -- unit's DR when it dies. See Vantage:NoteDR / :DRImmune in Data/Immunities.lua.
+    if srcGUID == myGUID and (sub == "SPELL_AURA_APPLIED" or sub == "SPELL_AURA_REFRESH") then
+        local _, sname = select(12, CombatLogGetCurrentEventInfo())
+        local mech = sname and Vantage.MyCCMechanic and Vantage:MyCCMechanic(sname)
+        if mech and Vantage.NoteDR then Vantage:NoteDR(dstGUID, mech) end
+    elseif sub == "UNIT_DIED" and Vantage.ClearDR then
+        Vantage:ClearDR(dstGUID)
+    end
+
     -- YOUR interrupt landing on a cast marked do-not-kick: the padlock's lesson,
     -- delivered at the exact moment it was ignored. (Checked before the caster
     -- lookup below — here the source is you, not the mob.)
