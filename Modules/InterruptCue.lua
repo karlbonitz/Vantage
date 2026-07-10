@@ -18,6 +18,25 @@ local function mateLabel()
     return Vantage.PartyKicks:ReadyMateLabel()
 end
 
+-- Multi-cast: is THIS the highest-priority kickable cast currently up? With two
+-- casters casting kickable spells at once you can only stop one, so only the
+-- top-priority cast earns the full shout; the rest stay kickable-colored but quiet,
+-- pointing you at the one to kick first. Ties keep both (no false hierarchy).
+function M:IsTopKick(overlay, info)
+    if Vantage.db.kickPriority == false then return true end
+    local myPri = (info and info.priority) or 0
+    for _, ov in pairs(Vantage.plates) do
+        if ov ~= overlay then
+            local a = ov.active
+            if a and a.info and a.info.interruptible == true
+                and ov.castbar:IsShown() and (a.info.priority or 0) > myPri then
+                return false
+            end
+        end
+    end
+    return true
+end
+
 function M:Evaluate(overlay, unit, spellName, info)
     local cb = overlay.castbar
     local tier            -- human-readable, for /vantage debug
@@ -58,27 +77,35 @@ function M:Evaluate(overlay, unit, spellName, info)
                 ready, inRange = Vantage:GetReadyInterrupt(unit)
             end
             if ready and inRange then
-                -- you can stop it NOW: full call to action (glow + sound + label;
-                -- ShowKick plays the sound only when the cue newly appears).
                 cb:SetStatusBarColor(Vantage:RGB("kick"))
-                -- Trust gradient: a community-pack cast you haven't personally seen
-                -- kicked yet shows the glow but stays QUIET (no alert, tentative "?"
-                -- label) so a rare bad pooled entry can't scream a false INTERRUPT.
-                -- Your first witnessed kick on it graduates it to the full cue.
-                local spellID = overlay.active and overlay.active.spellID
-                local tentative = info and info.community == true
-                    and not (Vantage.Learn and Vantage.Learn:IsConfirmed(spellID, spellName))
-                -- A cast already inside the reaction window can't be kicked in time;
-                -- show the glow but hold the alert — a beep you can't act on is noise.
-                local rem = cb.endTime and (cb.endTime - (GetTime and GetTime() or 0))
-                local tooLate = rem ~= nil and rem < 0.15
-                if tentative then
-                    overlay:ShowKick((ready.label or "INTERRUPT") .. "?", true)
-                    tier = "STOP NOW (community, unconfirmed — quiet) -> " .. (ready.label or "INTERRUPT")
+                if not M:IsTopKick(overlay, info) then
+                    -- kickable, but a HIGHER-priority cast is up elsewhere: kick that
+                    -- one first. Keep the kick-colored bar (still interruptible) but
+                    -- hold the shout so the full cue points at the right target.
+                    overlay:HideKick()
+                    tier = "READY, outranked by a higher-priority kick -> quiet"
                 else
-                    overlay:ShowKick(ready.label, tooLate)
-                    tier = (tooLate and "STOP NOW (too late for a sound) -> " or "STOP NOW -> ")
-                        .. (ready.label or "INTERRUPT")
+                    -- you can stop it NOW: full call to action (glow + sound + label;
+                    -- ShowKick plays the sound only when the cue newly appears).
+                    -- Trust gradient: a community-pack cast you haven't personally
+                    -- seen kicked shows the glow but stays QUIET (no alert, tentative
+                    -- "?" label) until your first witnessed kick graduates it.
+                    local spellID = overlay.active and overlay.active.spellID
+                    local tentative = info and info.community == true
+                        and not (Vantage.Learn and Vantage.Learn:IsConfirmed(spellID, spellName))
+                    -- A cast already inside the reaction window can't be kicked in
+                    -- time; show the glow but hold the alert — a beep you can't act
+                    -- on is just noise.
+                    local rem = cb.endTime and (cb.endTime - (GetTime and GetTime() or 0))
+                    local tooLate = rem ~= nil and rem < 0.15
+                    if tentative then
+                        overlay:ShowKick((ready.label or "INTERRUPT") .. "?", true)
+                        tier = "STOP NOW (community, unconfirmed — quiet) -> " .. (ready.label or "INTERRUPT")
+                    else
+                        overlay:ShowKick(ready.label, tooLate)
+                        tier = (tooLate and "STOP NOW (too late for a sound) -> " or "STOP NOW -> ")
+                            .. (ready.label or "INTERRUPT")
+                    end
                 end
                 code, readyRef = "ready", ready
             elseif ready then

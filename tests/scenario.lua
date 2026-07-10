@@ -638,6 +638,32 @@ ok(dump:find("healthBar", 1, true) ~= nil, "inspector dump names the health bar"
 ok(dump:find("[border]", 1, true) ~= nil, "inspector dump names the border art")
 ok(dump:find("[LevelFrame]", 1, true) ~= nil, "inspector dump names the level frame")
 
+-- 12b. Smarter multi-cast cue: two casters casting kickable spells at once — you
+-- can only stop one, so only the HIGHER-priority cast keeps the full shout; the
+-- lower one stays kickable-colored but quiet, pointing you at the right kick.
+Vantage.Kickable.byID[770001] = { name = "Weak Kickable", interruptible = true, priority = 2 }
+Vantage.Kickable.byID[770002] = { name = "Vital Kickable", interruptible = true, priority = 9 }
+spawnMob("nameplate3", "Caster A", { guid = "Creature-0-3333" })
+spawnMob("nameplate4", "Caster B", { guid = "Creature-0-4444" })
+H.FireEvent("NAME_PLATE_UNIT_ADDED", "nameplate3")
+H.FireEvent("NAME_PLATE_UNIT_ADDED", "nameplate4")
+local oA, oB = Vantage.plates.nameplate3, Vantage.plates.nameplate4
+H.range[cfg.spell] = 1
+H.units.nameplate3.casting = { name = "Weak Kickable", spellID = 770001,
+    startMS = H.now * 1000, endMS = (H.now + 3) * 1000 }
+H.FireEvent("UNIT_SPELLCAST_START", "nameplate3")
+ok(oA.kickF:IsShown(), "a lone kickable cast shouts (top priority so far)")
+H.units.nameplate4.casting = { name = "Vital Kickable", spellID = 770002,
+    startMS = H.now * 1000, endMS = (H.now + 3) * 1000 }
+H.FireEvent("UNIT_SPELLCAST_START", "nameplate4")
+ok(oB.kickF:IsShown(), "the higher-priority cast shouts")
+H.Advance(0.3) -- the range ticker re-evaluates the now-outranked cast
+ok(not oA.kickF:IsShown(), "the lower-priority cast goes quiet — kick the vital one first")
+Vantage.db.kickPriority = false -- opt out -> every kickable cast shouts again
+H.Advance(0.3)
+ok(oA.kickF:IsShown(), "with prioritization off, every kickable cast shouts")
+Vantage.db.kickPriority = true
+
 -- 13. Options interactions: toggle every checkbox + run reset
 for _, f in ipairs(H.frames) do
     if f.__kind == "CheckButton" and f.__scripts.OnClick then

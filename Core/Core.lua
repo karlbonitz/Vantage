@@ -53,6 +53,7 @@ local defaults = {
     learn        = true,   -- learn interruptibility from live combat (fills gaps the curated pack misses)
     pvp          = true,   -- cue enemy PLAYER casts vs your ready interrupt (no DB needed)
     rangeCheck   = true,   -- only shout when the target is actually within your stop's range
+    kickPriority = true,   -- when several casts are kickable at once, shout only for the top-priority one
     outcomeFlash = true,   -- flash the verdict as a flagged cast ends (KICKED/MISSED/WASTED)
     labelPos     = "center", -- cue label position: "center" (on health bar) | "above" (cast bar)
     cueHidesText = true,   -- centered cue label clears the plate's level/HP text while shown
@@ -185,6 +186,8 @@ SlashCmdList["VANTAGE"] = function(msg)
         toggle("pvp", "PvP enemy-player cues")
     elseif cmd == "range" then
         toggle("rangeCheck", "Range-aware cue")
+    elseif cmd == "priority" then
+        toggle("kickPriority", "Prioritized kick cue (shout for the top cast when several are up)")
     elseif cmd == "flash" then
         toggle("outcomeFlash", "Outcome flash (KICKED/MISSED/WASTED)")
     elseif cmd == "check" then
