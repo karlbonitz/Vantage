@@ -254,7 +254,7 @@
   </div>
 
   <footer>
-    <span>Vantage Parse · report v2 · works with Vantage 0.5.0+ exports (dungeon splits &amp; crew need 0.9.0+)</span>
+    <span>Vantage Parse · report v2 · works with Vantage 0.5.0+ exports (dungeon splits &amp; crew need 0.9.0+; CC breaks, dispels &amp; reaction percentiles need 0.12.0+)</span>
     <span>Your data never leaves this page — share links carry it in the URL itself, past the #, which no server ever sees.</span>
     <span><a href="https://github.com/karlbonitz/Vantage">Vantage on GitHub</a></span>
   </footer>
@@ -637,7 +637,7 @@ if (typeof module !== 'undefined') module.exports = { vpAggregate, vpDecode, vpM
     const status = $('#contributeStatus');
     const blob = JSON.stringify(pendingIntel);
 
-    // No collector deployed yet? Fall back to a pre-filled GitHub issue (the
+    // No collector configured? Fall back to a pre-filled GitHub issue (the
     // $0 intake) when the blob is small enough to fit in a URL.
     if (!COLLECTOR_URL) {
       if (blob.length < 6000) {

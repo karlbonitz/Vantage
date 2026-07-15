@@ -20,9 +20,10 @@ groupmates' interrupts from the combat log — nobody else needs the addon —
 and when a kickable cast is up while *your* stop is down, the cue quietly
 names whose interrupt is ready. And the plates answer "whose problem is
 this?": bright red = it's coming for you, cool slate = the tank has it, and
-**amber = your damage says you're closing in on pulling it** (estimated from
-group damage tallies, because the client's threat API is broken — late,
-never spammy).
+**amber = you're closing in on pulling it** — read from real threat percentages
+via an embedded LibThreatClassic2, because the client's own threat API is
+broken, with a group-damage estimate as the fallback when the library isn't
+there. Late, never spammy.
 
 And Vantage **teaches itself**. The curated pack can't know every cast in every
 instance, so any time Vantage watches a cast get interrupted — yours or a
@@ -59,9 +60,7 @@ setup.
 
 > Nearly dependency-free — the one embedded library is LibThreatClassic2 (for
 > reliable threat on 2.5.x, where the native API isn't); everything else is pure
-> WoW API, so it still loads fast. Shareable
-> "Intel Pack" import strings and the Vantage Parse data layer are the next
-> milestones on top of this structure.
+> WoW API, so it still loads fast.
 
 ## Install
 
@@ -76,7 +75,7 @@ addon manager. Or install straight from GitHub:
 2. On the character screen, open **AddOns** and make sure Vantage is enabled.
    If it shows as "out of date", tick **Load out of date AddOns** (the interface
    number in `Vantage.toc` may lag a tiny patch — see *Versioning & releases* below).
-3. Log in. You should see: `Vantage v0.11.0 loaded.`
+3. Log in. You should see: `Vantage v0.12.0 loaded.`
 4. Make sure **enemy nameplates are on** (default keybind `V`, or hold the
    nameplate key).
 
@@ -120,7 +119,7 @@ addon manager. Or install straight from GitHub:
 
 You can also reach the options panel from **Esc → Options → AddOns → Vantage**.
 
-## How it works (and what's deliberately limited in v0.1)
+## How it works (and what's deliberately limited)
 
 - **Decorates, never replaces.** Our overlay is parented to `UIParent` and merely
   *anchored* to the plate. We never reparent/move the secure nameplate frame, so
@@ -145,17 +144,21 @@ You can also reach the options panel from **Esc → Options → AddOns → Vanta
   *your* interrupt (hard kick **or** soft Fear/Silence/Shackle/Stun) is ready. So
   the hero feature is useful in arenas, battlegrounds, and world PvP at any level,
   not just in dungeons. Toggle with `/vantage pvp` (on by default).
-- **Threat tint is minimal and feature-detected.** If the native threat API isn't
-  present on your client, the tint disables itself cleanly; a LibThreatClassic2
-  fallback is a v0.2 TODO. The interrupt cue does not depend on it.
+- **Threat color comes from ground truth, not the native API.** Red/slate aggro
+  reads the mob's *actual target* — the 2.5.x native threat table is unreliable
+  (it reported "you have aggro" for everything in a real 5-man) and is never
+  consulted. The predictive amber "about to pull" tier reads real threat
+  percentages from the embedded **LibThreatClassic2**, falling back to a
+  group-damage estimate when the library isn't present (as in a source
+  checkout). The interrupt cue depends on none of it.
 
 ### Known limitations / TODO
 - Cast detection currently leans on the combat log + live cast API; very short
   casts and out-of-range casters may be missed.
 - Range awareness uses `IsSpellInRange`, which can't see **pet** abilities —
   a Warlock's Spell Lock cue is never range-suppressed.
-- Seed spell data is small and matched by name (locale-specific). Real coverage
-  ships as spellID-keyed Intel Packs.
+- Curated seed data is matched by spell **name** (locale-specific); self-learned,
+  Community Pack, and imported entries are spellID-keyed.
 
 ## Project layout
 
@@ -176,17 +179,23 @@ Vantage/
   Modules/
     Nameplates.lua          tracks plates, builds/recycles the overlay frames
     Skin.lua                custom health-bar skin (gradient/border/text/colors)
+    Learn.lua               self-taught kicks: banks any cast it watches get stopped
     CastWatch.lua           detects enemy casts (live API + combat-log fallback)
     InterruptCue.lua        THE hero: glow/sound/padlock decision
-    PartyKicks.lua          groupmates' interrupt cooldowns, inferred from CLEU
-    ThreatEst.lua           amber "closing in" estimate from group damage tallies
+    PartyKicks.lua          groupmates' interrupts (+ pet→owner) inferred from CLEU
+    ThreatEst.lua           amber "closing in": real threat, damage-tally fallback
     Threat.lua              aggro state from ground truth (mob target) + amber
     Auras.lua               your DoT/debuff timer row (swipe + dispel borders)
-    Options.lua             native options panel (sections, sliders, reset)
     Parse.lua               Vantage Parse collector: decision rows + CLEU outcomes
     ParseExport.lua         /vantage export JSON copy-paste window
     Contribute.lua          /vantage contribute — anonymous community-intel export
+    IntelPack.lua           /vantage share + /vantage import — player-to-player packs
+    Inspect.lua             /vantage plate — dev tool: dumps a plate's frame tree
     Briefing.lua            the dungeon kick sheet, printed on zone-in
+    Options.lua             native options panel (sections, sliders, reset)
+  Libs/
+    LibThreatClassic2/      real threat on 2.5.x — fetched by the packager at
+                            build time (gitignored; absent from a source checkout)
   docs/
     index.html              the Vantage Parse web report (served by GitHub Pages)
   collector/                self-hosted community-intel backend (Node + SQLite + admin dashboard)
@@ -205,23 +214,32 @@ no server ever sees. Nothing is uploaded anywhere.
 
 ## Roadmap
 
-- **v0.2** — ✅ aura/DoT timer row (`/vantage auras`), ✅ custom nameplate skin (`/vantage skin`), ✅ options panel (`/vantage`). Still to come: threat fallback lib.
+- **v0.2** — ✅ aura/DoT timer row (`/vantage auras`), ✅ custom nameplate skin (`/vantage skin`), ✅ options panel (`/vantage`).
 - **v0.3.0** — ✅ visual overhaul: gradient bar media, radial interrupt halo,
   bordered cast-bar icon + cast countdown, health text, class colors, target
   glow, aura swipe + dispel borders, sectioned options with sliders + reset.
-- **v0.3** — Ace3 adoption (AceConfig options GUI, AceSerializer+LibDeflate),
-  shareable **Intel Pack** import/export strings + an "intel-only consumer" mode
-  so Plater users can adopt the kick intelligence without switching nameplates.
+- **v0.10 — the self-learning update** — ✅ Vantage banks any cast it watches get
+  interrupted, so coverage grows from your own play (`/vantage learned`).
 - **v0.11 — the community update** — ✅ crowdsourced kickable-spell database:
   `/vantage contribute` feeds an anonymous, evidence-checked collector; once
   several independent players confirm a cast it's promoted into a shared
   **Community Pack** that ships with each release, so everyone's discoveries pool
   together and new players inherit the lot on day one.
+- **v0.12 — sharper cues** — ✅ shareable **Intel Pack** strings (`/vantage share`
+  / `/vantage import`), ✅ group coordination (`/vantage announce`,
+  `/vantage kicks`), ✅ prioritized multi-cast cue, ✅ real threat via an embedded
+  LibThreatClassic2, ✅ community trust gradient + diminishing-returns awareness,
+  ✅ pet interrupts credit their owner.
+- **Still open** — an "intel-only consumer" mode so Plater users can adopt the
+  kick intelligence without switching nameplates; curated packs for ZA / Hyjal /
+  BT / Sunwell as that content goes live (the community pool backfills the rest).
+  Ace3 + LibDeflate adoption was once on this map and hasn't been needed — the
+  event bus, options panel, and JSON encoder are all hand-rolled.
 - **Phase 2** — **Vantage Parse**: ✅ phase 1 shipped in v0.5.0 — decision/outcome
-  collector (`/vantage parse`), JSON export (`/vantage export`), and the in-browser
-  report page (`VantageParseWeb/`). Next: reaction-time percentiles, per-dungeon
-  breakdowns, CC-break/dispel tracking, then the hosted backend ("the utility
-  parse Warcraft Logs forgot").
+  collector (`/vantage parse`), JSON export (`/vantage export`), and the
+  in-browser report page (`docs/index.html`); ✅ per-dungeon splits + the crew
+  roster in v0.9.0; ✅ reaction-time percentiles and CC-break/dispel tracking in
+  v0.12.0. Next: the hosted backend ("the utility parse Warcraft Logs forgot").
 
 ## Development
 
@@ -242,7 +260,8 @@ way to see what the live client actually draws on a plate.
 
 ## Versioning & releases
 
-- `## Interface: 20504, 20505` in the TOC targets the 2.5.4/2.5.5 clients; if
+- `## Interface: 20504, 20505, 20506` in the TOC targets the 2.5.4/2.5.5/2.5.6
+  clients; if
   Blizzard ships a tiny client patch before the TOC catches up, **Load out of
   date AddOns** is safe.
 - Release flow: bump `## Version` in `Vantage.toc` **and** `Vantage.version` in

@@ -113,7 +113,7 @@ Once a few players have contributed (a spell needs ≥3 distinct confirmers + a 
 - [ ] **Actions → Promote community intel → Run workflow** (or `--min` of your choice).
 - [ ] Review the PR it opens (`Data/CommunityPack.lua` diff), merge it.
 - [ ] Bump `Vantage.version` (Util.lua) + TOC `## Version` + CHANGELOG, then
-      `git tag v0.11.0 && git push --tags` → the release Action ships it.
+      `git tag vX.Y.Z && git push --tags` → the release Action ships it.
 
 ---
 

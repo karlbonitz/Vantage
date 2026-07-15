@@ -10,8 +10,9 @@
 --      2.5.x native threat table is NOT consulted at all: it returned
 --      "you have aggro" for everything in a real 5-man (2026-07-03),
 --      exactly the unreliability our research predicted. The predictive
---      amber "about to pull" tier returns when a LibThreatClassic2-style
---      combat-log estimator lands.
+--      amber "about to pull" tier comes from ThreatEst instead: real threat
+--      percentages off the embedded LibThreatClassic2, falling back to a
+--      combat-log damage estimate when the library isn't there.
 local addonName, Vantage = ...
 local M = Vantage:NewModule("Threat")
 

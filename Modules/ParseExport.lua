@@ -1,11 +1,11 @@
 -- Vantage/Modules/ParseExport.lua
 --
 -- Exports Vantage Parse data as a JSON string in a copy-paste window
--- (/vantage export). WoW addons have no network access, so the v0.1 bridge is:
+-- (/vantage export). WoW addons have no network access, so the bridge is:
 -- Ctrl+A, Ctrl+C here -> paste into the Vantage Parse web report (a static page
 -- that decodes everything in your browser; nothing is uploaded anywhere).
 --
--- The encoder is hand-rolled (~40 lines) to keep Vantage dependency-free.
+-- The encoder is hand-rolled (~40 lines) so the export pulls in no libraries.
 -- Compression (LibDeflate) becomes worthwhile only if strings outgrow the
 -- edit box in practice.
 local addonName, Vantage = ...

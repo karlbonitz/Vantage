@@ -14,6 +14,10 @@ even your pet and stance — and lights up the plate the moment acting matters:
   is ready **and the target is in its range** → the nameplate erupts: glow,
   sound, and an `INTERRUPT` prompt centered on the plate. On cooldown or too
   far away, no shout — when Vantage lights up, it means *now*.
+- 🎯 **Kick the right one first.** A caster pack all starts casting at once and
+  you have exactly one kick. Vantage shouts for the cast that matters most — a
+  heal outranks a nuke — and leaves the rest marked kickable but quiet. The cue
+  answers *which* one, not just *whether*.
 - ⚖️ **The verdict.** As a flagged cast ends, the bar flashes what happened:
   teal `KICKED`, red `MISSED` (it completed while your stop sat ready), or
   `WASTED` when you spent a kick on an unkickable cast. You learn mid-pull,
@@ -31,10 +35,24 @@ even your pet and stance — and lights up the plate the moment acting matters:
   (no character or realm — just the spell IDs you confirmed kickable and the
   interrupt that stopped each one) to a community pool. Once several independent
   players confirm a cast, it ships in the next update's shared pack — so coverage
-  grows for the whole community, and new players inherit it on day one.
+  grows for the whole community, and new players inherit it on day one. A pooled
+  kick stays quiet on your plates until your own game watches one land, so a bad
+  entry can never scream a false `INTERRUPT` at you.
+- 📨 **Or hand it straight to a friend.** `/vantage share` packs the kicks
+  Vantage taught itself into a copy-paste string; your friend drops it into
+  `/vantage import` and inherits your dungeon knowledge. No server in the middle,
+  and curated data always wins.
+- 🤝 **It plays with your group.** Zone into a dungeon Vantage has intel on and
+  the **briefing** prints the kick sheet before the first pull. It learns your
+  groupmates' interrupts from the combat log — nobody else needs the addon — so
+  when a kickable cast is up and *your* kick is down, the cue quietly names who
+  *is* ready. `/vantage kicks` reads out the party's available stops on demand,
+  and `/vantage announce` (opt-in, throttled) calls your interrupts to party chat
+  so nobody doubles up.
 - 🛑 **Every class, not just kickers.** No hard interrupt? Vantage offers your
   real answer instead — `FEAR`, `STUN`, `SILENCE`, `SHACKLE` — and it checks
-  target immunities first, so it never tells you to fear a fear-immune boss.
+  target immunities *and* diminishing returns first, so it never tells you to
+  fear a fear-immune boss or re-stun a target you've already stunned to immune.
   Warrior stances, Druid forms, shields, combo points, and Felhunter/pet
   abilities are all understood.
 - ⚔️ **PvP mode.** Against enemy players no spell database is needed — any
@@ -46,7 +64,8 @@ even your pet and stance — and lights up the plate the moment acting matters:
   DoT/debuff timers with dispel-colored borders and a cooldown swipe.
 - 📊 **Vantage Parse.** The stat Warcraft Logs can't show you: how many casts
   you *let through while your kick sat ready*. Vantage logs every decision it
-  shows you, plus your cue→kick reaction time. `/vantage export`, paste into the
+  shows you, your cue→kick reaction time (as a median *and* a 90th percentile),
+  the CC you broke, and the dispels you landed. `/vantage export`, paste into the
   free report page — everything decodes in your browser, nothing is uploaded:
   https://karlbonitz.github.io/Vantage/
 
